@@ -358,7 +358,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
     Starlette middleware that:
     1. Extracts JWT from Authorization: Bearer header
     2. Validates the token and loads tenant context
-    3. Resolves tenant's allowed blocks from tenant_blocks table
+    3. Resolves tenant's allowed blocks from tenant_access table
     4. Sets PostgreSQL session variables for RLS
     5. Enforces per-tenant rate limiting
     6. Logs every request to the audit table
@@ -451,7 +451,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             with get_db() as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        SELECT block_id::TEXT FROM tenant_blocks
+                        SELECT block_id::TEXT FROM tenant_access
                         WHERE tenant_id = %s
                     """, (tenant_id,))
                     return [row[0] for row in cur.fetchall()]

@@ -73,10 +73,22 @@ docker compose up -d api ingestor alarm-engine
 
 # Step 4: Optional services
 if [ "$MODE" = "full" ]; then
-  echo -e "${CYAN}[4/4] Starting simulator + dashboard...${NC}"
+  echo -e "${CYAN}[4/4] Running seed data + starting simulator + dashboard...${NC}"
   docker compose --profile dev --profile frontend up -d
+  echo -e "${YELLOW}Waiting for seed to populate test data...${NC}"
+  docker compose logs -f seed 2>/dev/null &
+  SEED_PID=$!
+  # Wait for seed container to finish (max 60s)
+  for i in $(seq 1 60); do
+    STATUS=$(docker inspect -f '{{.State.Status}}' mcs-seed 2>/dev/null || echo "missing")
+    if [ "$STATUS" = "exited" ]; then break; fi
+    sleep 1
+  done
+  kill $SEED_PID 2>/dev/null
+  echo ""
 else
   echo -e "${CYAN}[4/4] Skipping simulator & dashboard (use './start.sh full' to include)${NC}"
+  echo -e "${YELLOW}  Note: Run 'make seed' to populate test data${NC}"
 fi
 
 # Wait for API

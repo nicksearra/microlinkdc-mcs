@@ -1,0 +1,13 @@
+.git
+.env
+*.md
+docs/
+contracts/
+dashboard/node_modules/
+dashboard/dist/
+edge/
+business/
+db/
+__pycache__
+*.pyc
+.DS_Store

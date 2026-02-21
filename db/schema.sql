@@ -18,6 +18,9 @@
 -- CUSTOM ENUM TYPES
 -- ────────────────────────────────────────────────────────────────────────────
 
+-- Ensure TimescaleDB extension is available
+CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+
 CREATE TYPE site_status AS ENUM ('active', 'commissioning', 'decommissioned');
 CREATE TYPE block_status AS ENUM ('active', 'commissioning', 'standby', 'decommissioned');
 CREATE TYPE equipment_subsystem AS ENUM (

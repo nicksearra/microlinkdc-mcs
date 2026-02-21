@@ -145,6 +145,29 @@ services:
       - dev
     restart: unless-stopped
 
+  # Seed: runs once to populate test data, then exits
+  seed:
+    image: python:3.12-slim
+    container_name: mcs-seed
+    working_dir: /app
+    volumes:
+      - ./db:/app
+    command: >
+      bash -c "pip install -q psycopg2-binary &&
+               python seed_data.py"
+    environment:
+      DB_HOST: ${DB_HOST:-timescaledb}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${POSTGRES_DB:-mcs}
+      DB_USER: ${POSTGRES_USER:-mcs_admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    profiles:
+      - dev
+    restart: "no"
+
   # ── Dashboard (Stream D) ─────────────────────────────────────────
 
   dashboard:

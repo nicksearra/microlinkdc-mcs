@@ -34,6 +34,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import aiomqtt
+import redis.asyncio as aioredis
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -131,6 +132,7 @@ class MQTTIngestor:
         self.alarm_detector = AlarmDetector()
         self._dlq: Optional[DeadLetterQueue] = None
         self._db_sessionmaker = None
+        self._redis: Optional[aioredis.Redis] = None
         self._running = False
         self._received = 0
 
@@ -155,6 +157,9 @@ class MQTTIngestor:
         await self.writer.start()
         await self.alarm_detector.connect()
 
+        # Redis for real-time telemetry pub/sub (feeds WebSocket)
+        self._redis = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+
         # Warm the sensor cache
         async with self._db_sessionmaker() as session:
             count = await self.cache.warm(session)
@@ -174,6 +179,8 @@ class MQTTIngestor:
         await self.writer.stop()
         await self.cache.close()
         await self.alarm_detector.close()
+        if self._redis:
+            await self._redis.aclose()
         logger.info("Shutdown complete")
 
     async def _consume(self) -> None:
@@ -272,6 +279,22 @@ class MQTTIngestor:
         accepted = await self.writer.enqueue(row)
         if not accepted:
             logger.warning("Backpressure — row dropped for sensor %d", sensor_id)
+
+        # ── Step 4b: Publish to Redis for WebSocket feed ─────────────────
+        try:
+            await self._redis.publish(
+                f"mcs:telemetry:{block_id}",
+                json.dumps({
+                    "sensor_id": sensor_id,
+                    "tag": tag,
+                    "subsystem": subsystem,
+                    "value": float(data["v"]),
+                    "quality": data["_quality"],
+                    "ts": data["ts"],
+                }),
+            )
+        except Exception:
+            pass  # Non-critical — don't block ingestion
 
         # ── Step 5: Check for alarm signal ───────────────────────────────
         alarm_priority = data.get("alarm")
