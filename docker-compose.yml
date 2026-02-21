@@ -1,0 +1,166 @@
+# ═══════════════════════════════════════════════════════════════════
+# MCS — Unified Docker Compose
+# ═══════════════════════════════════════════════════════════════════
+# Usage:
+#   docker compose up -d                    # Start everything
+#   docker compose up -d timescaledb redis  # Just infrastructure
+#   docker compose logs -f api              # Follow API logs
+#   docker compose down -v                  # Tear down (destroys data)
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Infrastructure ───────────────────────────────────────────────
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: mcs-timescaledb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mcs_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+      POSTGRES_DB: ${POSTGRES_DB:-mcs}
+    ports:
+      - "5432:5432"
+    volumes:
+      - mcs_pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/aggregates.sql:/docker-entrypoint-initdb.d/02-aggregates.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mcs_admin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: mcs-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - mcs_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mcs-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./edge/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mcs_mosquitto:/mosquitto/data
+    restart: unless-stopped
+
+  # ── Platform Services (Stream B) ─────────────────────────────────
+
+  api:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile
+    container_name: mcs-api
+    command: >
+      uvicorn api.app:create_app --factory
+      --host 0.0.0.0 --port 8000 --workers ${API_WORKERS:-4}
+      --log-level ${API_LOG_LEVEL:-info}
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: ${DB_HOST:-timescaledb}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${POSTGRES_USER:-mcs_admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+      DB_NAME: ${POSTGRES_DB:-mcs}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/0
+      JWT_SECRET: ${JWT_SECRET:-devsecret}
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ingestor:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile
+    container_name: mcs-ingestor
+    command: python -m ingestion
+    environment:
+      DB_HOST: ${DB_HOST:-timescaledb}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${POSTGRES_USER:-mcs_admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+      DB_NAME: ${POSTGRES_DB:-mcs}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/0
+      MQTT_BROKER: ${MQTT_HOST:-mosquitto}
+      MQTT_PORT: ${MQTT_PORT:-1883}
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+
+  alarm-engine:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile
+    container_name: mcs-alarm-engine
+    command: python -m alarm_engine
+    environment:
+      DB_HOST: ${DB_HOST:-timescaledb}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${POSTGRES_USER:-mcs_admin}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-localdev}
+      DB_NAME: ${POSTGRES_DB:-mcs}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/0
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  simulator:
+    build:
+      context: .
+      dockerfile: platform/Dockerfile
+    container_name: mcs-simulator
+    command: python -m simulator
+    environment:
+      MQTT_BROKER: ${MQTT_HOST:-mosquitto}
+      MQTT_PORT: ${MQTT_PORT:-1883}
+    depends_on:
+      mosquitto:
+        condition: service_started
+    profiles:
+      - dev
+    restart: unless-stopped
+
+  # ── Dashboard (Stream D) ─────────────────────────────────────────
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: mcs-dashboard
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    profiles:
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  mcs_pgdata:
+  mcs_redis:
+  mcs_mosquitto:

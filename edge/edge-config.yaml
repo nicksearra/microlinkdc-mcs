@@ -1,0 +1,47 @@
+# ═══════════════════════════════════════════════════════════════
+# MicroLink MCS — Edge Orchestrator Configuration
+# Site: AB InBev Baldwinsville · Block: block-01
+# ═══════════════════════════════════════════════════════════════
+
+site_id: ab-baldwinsville
+block_id: block-01
+edge_id: edge-ab-bville-01
+
+# ─── Local MQTT broker ────────────────────────────────────────
+local_mqtt:
+  host: 172.20.0.2     # Mosquitto container on internal network
+  port: 1883
+
+# ─── Cloud MQTT broker ────────────────────────────────────────
+cloud_mqtt:
+  host: mqtt.microlink.energy
+  port: 8883
+  tls: true
+  ca_cert: /etc/edge/certs/ca.pem
+  client_cert: /etc/edge/certs/edge.pem
+  client_key: /etc/edge/certs/edge.key
+
+# ─── Store-and-forward buffer ─────────────────────────────────
+buffer:
+  db_path: /data/buffer/message_buffer.db
+  max_messages: 5000000   # ~72 hours at full rate for 1MW block
+
+# ─── Adapter management ──────────────────────────────────────
+# In Docker mode, adapters are separate containers managed by
+# docker-compose. The orchestrator just monitors them via MQTT.
+# In subprocess mode, orchestrator spawns adapter processes directly.
+adapters:
+  mode: docker      # "docker" or "subprocess"
+
+  # Subprocess mode config (used on bare-metal installs):
+  # processes:
+  #   modbus:
+  #     cmd: ["python", "/opt/mcs/modbus_adapter.py", "--config", "/etc/edge/modbus-config.yaml"]
+  #   snmp:
+  #     cmd: ["python", "/opt/mcs/snmp_adapter.py", "--config", "/etc/edge/snmp-config.yaml"]
+  #   bacnet:
+  #     cmd: ["python", "/opt/mcs/bacnet_adapter.py", "--config", "/etc/edge/bacnet-config.yaml"]
+
+# ─── Heartbeat ────────────────────────────────────────────────
+heartbeat:
+  interval_s: 30

@@ -1,0 +1,446 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://microlink.energy/schemas/mqtt/v1.0.0",
+  "title": "MicroLink MCS MQTT Message Schemas",
+  "description": "Canonical message formats for all MQTT topics in the MicroLink Control System. Stream B ingestion pipeline MUST validate against these schemas.",
+  "version": "1.0.0",
+  "definitions": {
+
+    "topic_structure": {
+      "description": "All topics follow: microlink/{site_id}/{block_id}/{subsystem}/{tag}",
+      "type": "string",
+      "pattern": "^microlink/[a-z0-9_-]+/[a-z0-9_-]+/[a-z0-9_-]+/[A-Za-z0-9_-]+$",
+      "examples": [
+        "microlink/ab-baldwinsville/block-01/thermal-l2/TT-L2s",
+        "microlink/ab-baldwinsville/block-01/electrical/MET-01-kW",
+        "microlink/ab-baldwinsville/block-01/mode/state"
+      ]
+    },
+
+    "site_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{2,48}[a-z0-9]$",
+      "description": "Lowercase kebab-case site identifier. Immutable after creation.",
+      "examples": ["ab-baldwinsville", "rfg-foods-jhb", "jack-black-cpt"]
+    },
+
+    "block_id": {
+      "type": "string",
+      "pattern": "^block-[0-9]{2}$",
+      "description": "Block identifier within a site. Two-digit zero-padded.",
+      "examples": ["block-01", "block-02", "block-10"]
+    },
+
+    "subsystem": {
+      "type": "string",
+      "enum": [
+        "electrical",
+        "thermal-l1",
+        "thermal-l2",
+        "thermal-l3",
+        "thermal-hx",
+        "thermal-reject",
+        "thermal-safety",
+        "environmental",
+        "network",
+        "security",
+        "mode",
+        "edge",
+        "host-bms"
+      ],
+      "description": "Subsystem classification. Maps directly to engineering domains."
+    },
+
+    "quality": {
+      "type": "string",
+      "enum": ["GOOD", "UNCERTAIN", "BAD"],
+      "description": "OPC UA-inspired quality flag. GOOD=normal read. UNCERTAIN=stale or out-of-range. BAD=read failure or sensor fault."
+    },
+
+    "alarm_priority": {
+      "type": ["string", "null"],
+      "enum": [null, "P0", "P1", "P2", "P3"],
+      "description": "null=no alarm. P0=critical/safety. P1=high/SLA-impact. P2=medium/maintenance. P3=low/informational."
+    },
+
+    "telemetry_message": {
+      "type": "object",
+      "description": "Standard telemetry payload for all sensor readings.",
+      "required": ["ts", "v", "u", "q"],
+      "properties": {
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp with milliseconds. Always UTC. Set by edge controller at time of read.",
+          "examples": ["2026-02-21T14:30:00.123Z"]
+        },
+        "v": {
+          "type": "number",
+          "description": "Sensor value. Numeric only. Boolean sensors use 0/1. Null readings use quality=BAD with v=0.",
+          "examples": [45.2, 1013.5, 0, 1, 380.1]
+        },
+        "u": {
+          "type": "string",
+          "description": "Engineering unit string. Standardised per sensor type.",
+          "examples": ["°C", "kW", "kPa", "m³/h", "V", "A", "%", "Hz", "mm/s", "μS/cm", "bool", "rpm"]
+        },
+        "q": {
+          "$ref": "#/definitions/quality"
+        },
+        "alarm": {
+          "$ref": "#/definitions/alarm_priority"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monotonic sequence number per sensor. Resets on edge restart. Enables gap detection by Stream B."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "mode_state_message": {
+      "type": "object",
+      "description": "Published on every mode state change. Topic: microlink/{site}/{block}/mode/state",
+      "required": ["ts", "state", "previous", "trigger", "valves"],
+      "properties": {
+        "ts": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "state": {
+          "type": "string",
+          "enum": ["EXPORT", "MIXED", "REJECT", "MAINTENANCE"],
+          "description": "New mode state."
+        },
+        "previous": {
+          "type": "string",
+          "enum": ["EXPORT", "MIXED", "REJECT", "MAINTENANCE", "STARTUP"],
+          "description": "Previous mode state. STARTUP only valid as initial previous."
+        },
+        "trigger": {
+          "type": "string",
+          "description": "What caused the transition.",
+          "examples": [
+            "auto:temp_stabilised",
+            "auto:host_demand_off",
+            "auto:safety_limit",
+            "auto:sensor_fault",
+            "operator:override",
+            "plc:watchdog_timeout",
+            "startup:initial"
+          ]
+        },
+        "valves": {
+          "type": "object",
+          "required": ["v_exp", "v_rej"],
+          "properties": {
+            "v_exp": {
+              "type": "string",
+              "enum": ["OPEN", "CLOSED", "MODULATING"],
+              "description": "Export path valve position."
+            },
+            "v_rej": {
+              "type": "string",
+              "enum": ["OPEN", "CLOSED", "MODULATING"],
+              "description": "Reject path valve position."
+            }
+          }
+        },
+        "guards": {
+          "type": "object",
+          "description": "Snapshot of guard conditions at time of transition.",
+          "properties": {
+            "loop2_supply_temp": { "type": "number" },
+            "host_demand_active": { "type": "boolean" },
+            "all_safety_good": { "type": "boolean" },
+            "loop2_pressure_ok": { "type": "boolean" }
+          }
+        },
+        "operator": {
+          "type": ["string", "null"],
+          "description": "Operator ID if manually triggered. null for automatic transitions."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "alarm_event_message": {
+      "type": "object",
+      "description": "Published when an alarm condition is detected at the edge. Topic: microlink/{site}/{block}/alarms/{priority}",
+      "required": ["ts", "alarm_id", "action", "priority", "sensor_tag", "value", "threshold", "description"],
+      "properties": {
+        "ts": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "alarm_id": {
+          "type": "string",
+          "description": "Unique alarm instance ID. Format: {block_id}-{sensor_tag}-{unix_ms}",
+          "examples": ["block-01-TT-L2s-1708523400123"]
+        },
+        "action": {
+          "type": "string",
+          "enum": ["RAISED", "CLEARED", "ESCALATED"],
+          "description": "RAISED=new alarm. CLEARED=returned to normal. ESCALATED=upgraded priority."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["P0", "P1", "P2", "P3"]
+        },
+        "sensor_tag": {
+          "type": "string",
+          "description": "Tag of the sensor that triggered the alarm.",
+          "examples": ["TT-L2s", "LD-01a", "VIB-01"]
+        },
+        "subsystem": {
+          "$ref": "#/definitions/subsystem"
+        },
+        "value": {
+          "type": "number",
+          "description": "Sensor value at time of alarm."
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Threshold that was breached."
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["HIGH", "LOW", "BOOL"],
+          "description": "HIGH=value above threshold. LOW=value below. BOOL=discrete state change."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable alarm description.",
+          "examples": [
+            "Loop 2 supply temperature HIGH — 55.2°C exceeds P1 limit 55.0°C",
+            "Leak detected in TPM zone — rope sensor LD-01a triggered"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "heartbeat_message": {
+      "type": "object",
+      "description": "Edge health beacon. Published every 30s. Topic: microlink/{site}/{block}/edge/heartbeat",
+      "required": ["ts", "edge_id", "uptime_s", "adapters", "buffer"],
+      "properties": {
+        "ts": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "edge_id": {
+          "type": "string",
+          "description": "Unique edge controller hardware ID.",
+          "examples": ["edge-ab-bville-01"]
+        },
+        "uptime_s": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Seconds since edge controller last restart."
+        },
+        "adapters": {
+          "type": "object",
+          "description": "Status of each protocol adapter.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string", "enum": ["running", "error", "stopped"] },
+              "last_read_ts": { "type": "string", "format": "date-time" },
+              "reads_total": { "type": "integer" },
+              "errors_total": { "type": "integer" },
+              "devices_online": { "type": "integer" },
+              "devices_total": { "type": "integer" }
+            }
+          },
+          "examples": [{
+            "modbus": { "status": "running", "last_read_ts": "2026-02-21T14:29:58Z", "reads_total": 184320, "errors_total": 12, "devices_online": 3, "devices_total": 3 },
+            "snmp": { "status": "running", "last_read_ts": "2026-02-21T14:29:55Z", "reads_total": 42100, "errors_total": 0, "devices_online": 2, "devices_total": 2 },
+            "bacnet": { "status": "running", "last_read_ts": "2026-02-21T14:29:50Z", "reads_total": 8400, "errors_total": 3, "devices_online": 1, "devices_total": 1 }
+          }]
+        },
+        "buffer": {
+          "type": "object",
+          "description": "Store-and-forward buffer status.",
+          "properties": {
+            "depth": { "type": "integer", "description": "Messages currently buffered." },
+            "capacity": { "type": "integer", "description": "Max buffer capacity." },
+            "oldest_ts": { "type": ["string", "null"], "format": "date-time", "description": "Timestamp of oldest buffered message. null if empty." },
+            "cloud_connected": { "type": "boolean" },
+            "replay_active": { "type": "boolean" }
+          }
+        },
+        "system": {
+          "type": "object",
+          "description": "Edge hardware health.",
+          "properties": {
+            "cpu_pct": { "type": "number" },
+            "mem_pct": { "type": "number" },
+            "disk_pct": { "type": "number" },
+            "temp_c": { "type": "number" }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "command_message": {
+      "type": "object",
+      "description": "Cloud-to-edge command. Topic: microlink/{site}/{block}/command/{target}. Edge subscribes to these.",
+      "required": ["ts", "cmd", "source", "request_id"],
+      "properties": {
+        "ts": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "cmd": {
+          "type": "string",
+          "description": "Command verb.",
+          "enum": [
+            "mode_override",
+            "alarm_ack_sync",
+            "config_reload",
+            "adapter_restart",
+            "buffer_flush",
+            "diagnostics_request"
+          ]
+        },
+        "params": {
+          "type": "object",
+          "description": "Command-specific parameters.",
+          "examples": [
+            { "target_mode": "REJECT", "reason": "Planned maintenance" },
+            { "adapter": "modbus" },
+            { "alarm_id": "block-01-TT-L2s-1708523400123" }
+          ]
+        },
+        "source": {
+          "type": "string",
+          "description": "Who sent the command.",
+          "examples": ["operator:nick", "system:sla-engine", "system:pagerduty"]
+        },
+        "request_id": {
+          "type": "string",
+          "description": "UUID for request-response correlation."
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "command_response_message": {
+      "type": "object",
+      "description": "Edge response to a command. Topic: microlink/{site}/{block}/command/response",
+      "required": ["ts", "request_id", "status"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "request_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["accepted", "rejected", "error"] },
+        "reason": { "type": "string" },
+        "result": { "type": "object" }
+      },
+      "additionalProperties": false
+    }
+  },
+
+  "topic_registry": {
+    "description": "Complete registry of topic patterns, their message schemas, QoS levels, and retain policies.",
+    "topics": {
+      "microlink/{site}/{block}/{subsystem}/{tag}": {
+        "schema": { "$ref": "#/definitions/telemetry_message" },
+        "qos": 0,
+        "retain": true,
+        "direction": "edge→cloud",
+        "description": "Standard telemetry. QoS 0 for throughput. Retain=true so new subscribers get last known value."
+      },
+      "microlink/{site}/{block}/mode/state": {
+        "schema": { "$ref": "#/definitions/mode_state_message" },
+        "qos": 1,
+        "retain": true,
+        "direction": "edge→cloud",
+        "description": "Mode state changes. QoS 1 — must not be lost. Retain=true for current state."
+      },
+      "microlink/{site}/{block}/alarms/{priority}": {
+        "schema": { "$ref": "#/definitions/alarm_event_message" },
+        "qos": 1,
+        "retain": false,
+        "direction": "edge→cloud",
+        "description": "Alarm events. QoS 1 — must not be lost. Retain=false — alarms are events, not state."
+      },
+      "microlink/{site}/{block}/edge/heartbeat": {
+        "schema": { "$ref": "#/definitions/heartbeat_message" },
+        "qos": 1,
+        "retain": true,
+        "direction": "edge→cloud",
+        "description": "Edge health. QoS 1. Retain=true for current health snapshot."
+      },
+      "microlink/{site}/{block}/command/{target}": {
+        "schema": { "$ref": "#/definitions/command_message" },
+        "qos": 1,
+        "retain": false,
+        "direction": "cloud→edge",
+        "description": "Cloud-to-edge commands. QoS 1. Retain=false — commands are one-shot."
+      },
+      "microlink/{site}/{block}/command/response": {
+        "schema": { "$ref": "#/definitions/command_response_message" },
+        "qos": 1,
+        "retain": false,
+        "direction": "edge→cloud",
+        "description": "Command acknowledgements."
+      }
+    }
+  },
+
+  "polling_groups": {
+    "description": "Standardised polling rate groups. Each sensor in the point schedule is assigned to a group.",
+    "groups": {
+      "safety": {
+        "interval_ms": 1000,
+        "description": "Safety-critical: leak detectors, thermal limits, PRV, freeze protection.",
+        "subsystems": ["thermal-safety"]
+      },
+      "fast": {
+        "interval_ms": 2000,
+        "description": "Fast-moving process values: temperatures, pressures, flow rates, valve positions.",
+        "subsystems": ["thermal-l1", "thermal-l2", "thermal-l3", "thermal-hx", "thermal-reject"]
+      },
+      "normal": {
+        "interval_ms": 5000,
+        "description": "Standard monitoring: electrical power, rack temps, CDU readings.",
+        "subsystems": ["electrical", "environmental"]
+      },
+      "slow": {
+        "interval_ms": 30000,
+        "description": "Slow-changing: network stats, security, chemistry, expansion vessel.",
+        "subsystems": ["network", "security", "host-bms"]
+      }
+    }
+  },
+
+  "unit_registry": {
+    "description": "Canonical unit strings. All adapters MUST normalise to these.",
+    "units": {
+      "temperature": "°C",
+      "pressure": "kPa",
+      "flow": "m³/h",
+      "power_active": "kW",
+      "power_apparent": "kVA",
+      "power_reactive": "kVAr",
+      "energy": "kWh",
+      "thermal_energy": "kWht",
+      "voltage": "V",
+      "current": "A",
+      "frequency": "Hz",
+      "power_factor": "pf",
+      "humidity": "%RH",
+      "differential_pressure": "Pa",
+      "vibration": "mm/s",
+      "conductivity": "μS/cm",
+      "ph": "pH",
+      "level": "%",
+      "speed": "rpm",
+      "boolean": "bool",
+      "position": "%open"
+    }
+  }
+}

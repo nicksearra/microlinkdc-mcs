@@ -1,0 +1,16 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements-bacnet.txt .
+RUN pip install --no-cache-dir -r requirements-bacnet.txt
+
+COPY bacnet_adapter.py .
+
+RUN useradd -r -s /bin/false mcs && chown -R mcs:mcs /app
+USER mcs
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD python -c "import socket; s=socket.socket(); s.settimeout(2); s.connect(('172.20.0.2', 1883)); s.close()" || exit 1
+
+CMD ["python", "bacnet_adapter.py", "--config", "/app/bacnet-config.yaml"]

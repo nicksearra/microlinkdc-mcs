@@ -1,0 +1,239 @@
+# ═══════════════════════════════════════════════════════════════
+# MicroLink MCS — Edge Stack Docker Compose
+# Stream A · Task 7 · v1.0.0
+#
+# Runs the complete edge controller stack on a single device
+# (Raspberry Pi 5 / Intel NUC / x86 industrial PC).
+#
+# Usage:
+#   docker compose up -d                    # Start all services
+#   docker compose logs -f orchestrator     # Follow orchestrator logs
+#   docker compose restart modbus-adapter   # Restart single adapter
+#   docker compose down                     # Stop all services
+#
+# Prerequisites:
+#   - Docker Engine 24+ with Compose V2
+#   - Config files in /etc/edge/
+#   - TLS certs in /etc/edge/certs/
+#   - Sufficient storage for buffer (/data/buffer ~ 3GB per 72h)
+# ═══════════════════════════════════════════════════════════════
+
+name: microlink-edge
+
+# ─── Networks ─────────────────────────────────────────────────
+# Three isolated networks matching OT security zones.
+# Adapters only have access to their required networks.
+networks:
+  internal:
+    # Internal bus — all containers can talk to Mosquitto
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  ot-modbus:
+    # Modbus devices (power meters, thermal I/O, safety PLC)
+    driver: macvlan
+    driver_opts:
+      parent: eth0          # Physical NIC connected to OT network
+    ipam:
+      config:
+        - subnet: 192.168.10.0/24
+
+  ot-bms:
+    # Host BMS BACnet/IP (separate VLAN)
+    driver: macvlan
+    driver_opts:
+      parent: eth1          # Second NIC or VLAN interface
+    ipam:
+      config:
+        - subnet: 192.168.20.0/24
+
+# ─── Persistent volumes ──────────────────────────────────────
+volumes:
+  mosquitto-data:
+    driver: local
+  mosquitto-log:
+    driver: local
+  buffer-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /data/buffer
+
+# ═══════════════════════════════════════════════════════════════
+# SERVICES
+# ═══════════════════════════════════════════════════════════════
+services:
+
+  # ─── MOSQUITTO — Local MQTT Broker ─────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: mcs-mosquitto
+    restart: always
+    networks:
+      internal:
+        ipv4_address: 172.20.0.2
+    ports:
+      - "1883:1883"         # Local MQTT (adapters connect here)
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-W", "3"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
+  # ─── MODBUS ADAPTER ────────────────────────────────────────
+  modbus-adapter:
+    build:
+      context: ./adapters
+      dockerfile: Dockerfile.modbus
+    container_name: mcs-modbus-adapter
+    restart: always
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    networks:
+      internal:
+        ipv4_address: 172.20.0.10
+      ot-modbus:
+        ipv4_address: 192.168.10.100
+    volumes:
+      - /etc/edge/modbus-config.yaml:/app/modbus-config.yaml:ro
+    environment:
+      - LOG_LEVEL=INFO
+      - MQTT_HOST=172.20.0.2
+      - MQTT_PORT=1883
+    # Serial device passthrough for RTU
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyUSB1:/dev/ttyUSB1
+    command: python modbus_adapter.py --config /app/modbus-config.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ─── SNMP ADAPTER ──────────────────────────────────────────
+  snmp-adapter:
+    build:
+      context: ./adapters
+      dockerfile: Dockerfile.snmp
+    container_name: mcs-snmp-adapter
+    restart: always
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    networks:
+      internal:
+        ipv4_address: 172.20.0.11
+      ot-modbus:
+        # SNMP devices are on the same OT network as Modbus
+        ipv4_address: 192.168.10.101
+    ports:
+      - "162:162/udp"       # SNMP trap receiver
+    volumes:
+      - /etc/edge/snmp-config.yaml:/app/snmp-config.yaml:ro
+    environment:
+      - LOG_LEVEL=INFO
+      - MQTT_HOST=172.20.0.2
+      - MQTT_PORT=1883
+      - SNMP_AUTH_PASS=${SNMP_AUTH_PASS}
+      - SNMP_PRIV_PASS=${SNMP_PRIV_PASS}
+    command: python snmp_adapter.py --config /app/snmp-config.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ─── BACNET ADAPTER (READ-ONLY) ────────────────────────────
+  bacnet-adapter:
+    build:
+      context: ./adapters
+      dockerfile: Dockerfile.bacnet
+    container_name: mcs-bacnet-adapter
+    restart: always
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    networks:
+      internal:
+        ipv4_address: 172.20.0.12
+      ot-bms:
+        ipv4_address: 192.168.20.10
+    ports:
+      - "47809:47809/udp"   # BACnet/IP (non-standard port to avoid conflict)
+    volumes:
+      - /etc/edge/bacnet-config.yaml:/app/bacnet-config.yaml:ro
+    environment:
+      - LOG_LEVEL=INFO
+      - MQTT_HOST=172.20.0.2
+      - MQTT_PORT=1883
+    command: python bacnet_adapter.py --config /app/bacnet-config.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  # ─── EDGE ORCHESTRATOR ─────────────────────────────────────
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile.orchestrator
+    container_name: mcs-orchestrator
+    restart: always
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      modbus-adapter:
+        condition: service_started
+      snmp-adapter:
+        condition: service_started
+      bacnet-adapter:
+        condition: service_started
+    networks:
+      internal:
+        ipv4_address: 172.20.0.3
+    volumes:
+      - /etc/edge/edge-config.yaml:/etc/edge/edge-config.yaml:ro
+      - /etc/edge/certs:/etc/edge/certs:ro
+      - buffer-data:/data/buffer
+    environment:
+      - LOG_LEVEL=INFO
+    command: python edge_orchestrator.py --config /etc/edge/edge-config.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+
+  # ─── WATCHTOWER — Auto-update containers ───────────────────
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: mcs-watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=3600      # Check hourly
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_LABEL_ENABLE=false
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.1"

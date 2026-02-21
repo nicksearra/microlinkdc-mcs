@@ -1,0 +1,133 @@
+# ═══════════════════════════════════════════════════════════════
+# MicroLink MCS — BACnet/IP Adapter Configuration
+# Site: AB InBev Baldwinsville · Block: block-01
+# Mode: READ-ONLY — we never write to the host BMS
+# ═══════════════════════════════════════════════════════════════
+
+site_id: ab-baldwinsville
+block_id: block-01
+
+mqtt:
+  host: localhost
+  port: 1883
+  client_id: bacnet-adapter-ab-bville-01
+
+bacnet:
+  local_ip: 192.168.20.10        # Edge controller IP on OT-BMS VLAN
+  local_port: 47809              # Avoid conflict with host BMS on 47808
+  network_interface: eth1         # Dedicated NIC for BMS network
+
+polling_groups:
+  slow: 30000   # Host BMS — 30s is sufficient for all objects
+
+devices:
+  # ═══════════════════════════════════════════════════════════
+  # AB InBev Baldwinsville — Brewery BMS Controller
+  # Siemens Desigo CC / Honeywell Niagara — BACnet/IP
+  # ═══════════════════════════════════════════════════════════
+  - name: brewery-bms
+    device_id: 100
+    ip: 192.168.20.1
+    port: 47808
+    objects:
+      # ─── Hot water system temperatures ───
+      - tag: TT-HOST-hw-supply
+        description: Host hot water supply temp
+        object_type: AI
+        instance: 1
+        unit: "°C"
+        data_type: float
+        range_min: 10
+        range_max: 90
+        poll_group: slow
+        subsystem: host-bms
+        bacnet_name: "HW-Supply-Temp"
+        alarm_thresholds:
+          P1_high: 80
+          P2_high: 70
+
+      - tag: TT-HOST-hw-return
+        description: Host hot water return temp
+        object_type: AI
+        instance: 2
+        unit: "°C"
+        data_type: float
+        range_min: 5
+        range_max: 70
+        poll_group: slow
+        subsystem: host-bms
+        bacnet_name: "HW-Return-Temp"
+        alarm_thresholds:
+          P1_high: 60
+          P2_high: 50
+
+      - tag: TT-HOST-hw-tank
+        description: Host hot water storage tank temp
+        object_type: AI
+        instance: 3
+        unit: "°C"
+        data_type: float
+        range_min: 10
+        range_max: 95
+        poll_group: slow
+        subsystem: host-bms
+        bacnet_name: "HW-Tank-Temp"
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+      # ─── Demand and status signals ───
+      - tag: HOST-demand
+        description: Host heat demand signal
+        object_type: BV
+        instance: 1
+        unit: "bool"
+        data_type: bool
+        poll_group: slow
+        subsystem: host-bms
+        bacnet_name: "Heat-Demand-Active"
+        use_cov: true
+        cov_lifetime: 300
+
+      - tag: HOST-hw-pump
+        description: Host HW circulation pump status
+        object_type: BI
+        instance: 1
+        unit: "bool"
+        data_type: bool
+        poll_group: slow
+        subsystem: host-bms
+        bacnet_name: "HW-Circ-Pump-Status"
+
+      - tag: HOST-boiler
+        description: Host backup boiler firing status
+        object_type: BI
+        instance: 2
+        unit: "bool"
+        data_type: bool
+        poll_group: slow
+        subsystem: host-bms
+        bacnet_name: "Backup-Boiler-Status"
+
+      - tag: HOST-bms-online
+        description: Host BMS communication status
+        object_type: BV
+        instance: 2
+        unit: "bool"
+        data_type: bool
+        poll_group: slow
+        subsystem: host-bms
+        bacnet_name: "BMS-Comm-Status"
+
+      # ─── NYSERDA Clean Neighbourhood Benefits programme ───
+      - tag: HOST-cnb-mode
+        description: Host CNB programme mode
+        object_type: AV
+        instance: 1
+        unit: "bool"
+        data_type: float
+        range_min: 0
+        range_max: 3
+        poll_group: slow
+        subsystem: host-bms
+        bacnet_name: "CNB-Programme-Mode"

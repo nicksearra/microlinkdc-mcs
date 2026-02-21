@@ -1,0 +1,1785 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MicroLink Control System \u2014 Data Platform API",
+    "description": "**Stream B Data Platform API** \u2014 the central nervous system of MCS.\n\nThis is the contract that Stream C (Business Systems) and Stream D (Frontend)\ndevelop against. All telemetry, alarm, billing, and real-time data flows through\nthese endpoints.\n\n## Authentication\nAPI key via `X-API-Key` header. Multi-tenant isolation via row-level security\nscoped to the authenticated tenant.\n\n## Versioning\nAll endpoints are prefixed with `/api/v1`. Breaking changes will increment\nthe version number.\n\n## Rate Limits\n- REST endpoints: 1,000 req/min per API key\n- WebSocket connections: 10 per API key\n- Telemetry queries spanning >90 days: 10 req/min\n\n## Real-Time Feeds\nWebSocket endpoints provide live data streams backed by Redis pub/sub.\nReconnect with exponential backoff on disconnect.\n",
+    "version": "0.1.0",
+    "contact": {
+      "name": "MicroLink MCS Team",
+      "email": "engineering@microlinkdc.com"
+    },
+    "license": {
+      "name": "Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api/v1",
+      "description": "Local development"
+    },
+    {
+      "url": "https://api.mcs.microlinkdc.com/api/v1",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Sites",
+      "description": "Site management \u2014 physical locations hosting MicroLink blocks"
+    },
+    {
+      "name": "Blocks",
+      "description": "Compute blocks \u2014 1MW modular units deployed at sites"
+    },
+    {
+      "name": "Telemetry",
+      "description": "Historical and real-time sensor data with automatic aggregate tier selection"
+    },
+    {
+      "name": "Alarms",
+      "description": "ISA-18.2 alarm lifecycle \u2014 raise, acknowledge, shelve, clear"
+    },
+    {
+      "name": "Events",
+      "description": "Immutable audit log \u2014 all system and operator events"
+    },
+    {
+      "name": "Billing",
+      "description": "Pre-computed energy data for Stream C invoice generation"
+    },
+    {
+      "name": "Health",
+      "description": "System health and operational statistics"
+    },
+    {
+      "name": "WebSocket",
+      "description": "Real-time streaming feeds for dashboards"
+    }
+  ],
+  "paths": {
+    "/sites": {
+      "get": {
+        "tags": [
+          "Sites"
+        ],
+        "summary": "List all sites",
+        "operationId": "listSites",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of sites with block counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Site"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sites/{slug}": {
+      "get": {
+        "tags": [
+          "Sites"
+        ],
+        "summary": "Get site details",
+        "operationId": "getSite",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "baldwinsville"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Site details with config",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/blocks": {
+      "get": {
+        "tags": [
+          "Blocks"
+        ],
+        "summary": "List blocks",
+        "operationId": "listBlocks",
+        "parameters": [
+          {
+            "name": "site_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by site"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Block"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blocks/{slug}": {
+      "get": {
+        "tags": [
+          "Blocks"
+        ],
+        "summary": "Get block details",
+        "operationId": "getBlock",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "block-01"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/equipment/{block_slug}": {
+      "get": {
+        "tags": [
+          "Blocks"
+        ],
+        "summary": "List equipment in a block",
+        "operationId": "listEquipment",
+        "parameters": [
+          {
+            "name": "block_slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Equipment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sensors/{block_slug}": {
+      "get": {
+        "tags": [
+          "Blocks"
+        ],
+        "summary": "List sensors in a block",
+        "operationId": "listSensors",
+        "parameters": [
+          {
+            "name": "block_slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subsystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "electrical",
+                "thermal-l1",
+                "thermal-l2",
+                "thermal-l3",
+                "thermal-reject",
+                "thermal-safety",
+                "environmental",
+                "network",
+                "security"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Sensor"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telemetry": {
+      "get": {
+        "tags": [
+          "Telemetry"
+        ],
+        "summary": "Query historical telemetry",
+        "description": "Query telemetry for a single sensor over a time range.\n**Automatically selects the optimal aggregate tier** based on the time span.\nOverride with `agg` parameter for explicit control.\n\n| Time Range | Tier | Resolution |\n|-----------|------|------------|\n| < 2 hours | raw | 5 seconds |\n| 2h \u2013 12h | agg_1min | 1 minute |\n| 12h \u2013 3d | agg_5min | 5 minutes |\n| 3d \u2013 90d | agg_1hour | 1 hour |\n| > 90 days | agg_1day | 1 day |\n",
+        "operationId": "queryTelemetry",
+        "parameters": [
+          {
+            "name": "sensor_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Sensor ID"
+          },
+          {
+            "$ref": "#/components/parameters/Start"
+          },
+          {
+            "$ref": "#/components/parameters/End"
+          },
+          {
+            "name": "agg",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "raw",
+                "1min",
+                "5min",
+                "1hour",
+                "1day"
+              ]
+            },
+            "description": "Override aggregate tier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Telemetry data with metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/telemetry/latest": {
+      "get": {
+        "tags": [
+          "Telemetry"
+        ],
+        "summary": "Get latest value per sensor",
+        "description": "Returns the most recent reading for every sensor in a block.\nUses DISTINCT ON for single-pass efficiency. Powers the NOC\ndashboard \"current state\" view.\n",
+        "operationId": "getLatestValues",
+        "parameters": [
+          {
+            "name": "block_slug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subsystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockLatestResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/telemetry/multi": {
+      "get": {
+        "tags": [
+          "Telemetry"
+        ],
+        "summary": "Query multiple sensors",
+        "description": "Query up to 50 sensors in one call for comparison charts.",
+        "operationId": "queryMultiSensor",
+        "parameters": [
+          {
+            "name": "sensor_ids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated sensor IDs (max 50)",
+            "example": "42,43,44,45"
+          },
+          {
+            "$ref": "#/components/parameters/Start"
+          },
+          {
+            "$ref": "#/components/parameters/End"
+          },
+          {
+            "name": "agg",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "raw",
+                "1min",
+                "5min",
+                "1hour",
+                "1day"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MultiTelemetryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/alarms": {
+      "get": {
+        "tags": [
+          "Alarms"
+        ],
+        "summary": "List alarms",
+        "description": "Returns non-CLEARED alarms sorted by priority then time.",
+        "operationId": "listAlarms",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated: ACTIVE,ACKED,RTN_UNACK,SHELVED,SUPPRESSED",
+            "example": "ACTIVE,RTN_UNACK"
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated: P0,P1,P2,P3",
+            "example": "P0,P1"
+          },
+          {
+            "name": "block_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "site_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/alarms/{sensor_id}/acknowledge": {
+      "post": {
+        "tags": [
+          "Alarms"
+        ],
+        "summary": "Acknowledge an alarm",
+        "description": "Transitions ACTIVE \u2192 ACKED or RTN_UNACK \u2192 CLEARED.\nLogs an immutable event with the operator identity.\n",
+        "operationId": "acknowledgeAlarm",
+        "parameters": [
+          {
+            "name": "sensor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlarmAckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Alarm"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/alarms/{sensor_id}/shelve": {
+      "post": {
+        "tags": [
+          "Alarms"
+        ],
+        "summary": "Shelve an alarm",
+        "description": "Temporarily suppress an alarm. Requires a reason (audit trail).\nMaximum duration: 24 hours. Timer-expired alarms auto-unshelve\nand re-evaluate.\n",
+        "operationId": "shelveAlarm",
+        "parameters": [
+          {
+            "name": "sensor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlarmShelveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Alarm"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/alarms/stats": {
+      "get": {
+        "tags": [
+          "Alarms"
+        ],
+        "summary": "ISA-18.2 compliance stats",
+        "operationId": "alarmStats",
+        "parameters": [
+          {
+            "name": "block_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlarmStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Query event log",
+        "description": "Immutable audit trail \u2014 all system and operator events.",
+        "operationId": "listEvents",
+        "parameters": [
+          {
+            "name": "block_slug",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated: alarm_raised, alarm_acked, mode_change, etc."
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/kwh": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Electrical energy data (5-min)",
+        "description": "5-minute electrical energy (kWh) data for billing.\nStream C multiplies `kwh_value` by customer rate for invoice line items.\n",
+        "operationId": "billingKwh",
+        "parameters": [
+          {
+            "name": "block_slug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Start"
+          },
+          {
+            "$ref": "#/components/parameters/End"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingKwhResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/kwht": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Thermal energy data (5-min)",
+        "description": "5-minute thermal energy (kWht) data for heat credit billing.\nStream C uses this for host heat recovery credit calculations.\n",
+        "operationId": "billingKwht",
+        "parameters": [
+          {
+            "name": "block_slug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Start"
+          },
+          {
+            "$ref": "#/components/parameters/End"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingKwhtResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/energy-daily": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Daily energy summary",
+        "description": "Daily energy totals per block \u2014 electrical kWh, thermal recovery,\nPUE estimate. Used by lender reports and ESG module.\n",
+        "operationId": "energyDailySummary",
+        "parameters": [
+          {
+            "name": "block_slug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Start"
+          },
+          {
+            "$ref": "#/components/parameters/End"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnergyDailySummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "System statistics",
+        "operationId": "systemStats",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stats"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Offset": {
+        "name": "offset",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "Start": {
+        "name": "start",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "description": "Start time (ISO 8601)"
+      },
+      "End": {
+        "name": "end",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "description": "End time (ISO 8601, default now)"
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Site": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string",
+            "example": "baldwinsville"
+          },
+          "name": {
+            "type": "string",
+            "example": "Baldwinsville Brewery"
+          },
+          "region": {
+            "type": "string",
+            "nullable": true,
+            "example": "US-East"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "commissioning",
+              "decommissioned"
+            ],
+            "example": "active"
+          },
+          "latitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "block_count": {
+            "type": "integer",
+            "example": 2
+          },
+          "total_capacity_mw": {
+            "type": "number",
+            "example": 2.0
+          }
+        }
+      },
+      "SiteDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Site"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "config": {
+                "type": "object",
+                "nullable": true
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
+      "Block": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string",
+            "example": "block-01"
+          },
+          "site_slug": {
+            "type": "string"
+          },
+          "site_name": {
+            "type": "string"
+          },
+          "capacity_mw": {
+            "type": "number",
+            "example": 1.0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "commissioning",
+              "standby",
+              "decommissioned"
+            ]
+          },
+          "commissioned_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "sensor_count": {
+            "type": "integer",
+            "example": 300
+          }
+        }
+      },
+      "BlockDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Block"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "config": {
+                "type": "object",
+                "nullable": true
+              },
+              "equipment_count": {
+                "type": "integer"
+              }
+            }
+          }
+        ]
+      },
+      "Equipment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "tag": {
+            "type": "string",
+            "example": "CDU-01"
+          },
+          "type": {
+            "type": "string",
+            "example": "coolant_distribution_unit"
+          },
+          "subsystem": {
+            "type": "string",
+            "enum": [
+              "electrical",
+              "thermal-l1",
+              "thermal-l2",
+              "thermal-l3",
+              "thermal-reject",
+              "thermal-safety",
+              "environmental",
+              "network",
+              "security"
+            ]
+          },
+          "block_slug": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "sensor_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "Sensor": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "tag": {
+            "type": "string",
+            "example": "CDU-01-T-SUP"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true,
+            "example": "\u00b0C"
+          },
+          "subsystem": {
+            "type": "string"
+          },
+          "equipment_tag": {
+            "type": "string"
+          },
+          "block_slug": {
+            "type": "string"
+          },
+          "range_min": {
+            "type": "number",
+            "nullable": true
+          },
+          "range_max": {
+            "type": "number",
+            "nullable": true
+          },
+          "poll_rate_ms": {
+            "type": "integer",
+            "nullable": true,
+            "example": 5000
+          },
+          "alarm_thresholds": {
+            "type": "object",
+            "nullable": true,
+            "description": "Keys: HH, H, L, LL. Values: {value, priority, delay_s}",
+            "example": {
+              "HH": {
+                "value": 60.0,
+                "priority": "P0",
+                "delay_s": 0
+              },
+              "H": {
+                "value": 55.0,
+                "priority": "P2",
+                "delay_s": 30
+              }
+            }
+          }
+        }
+      },
+      "TelemetryPoint": {
+        "type": "object",
+        "properties": {
+          "bucket": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "val_avg": {
+            "type": "number",
+            "example": 32.14
+          },
+          "val_min": {
+            "type": "number",
+            "example": 31.8
+          },
+          "val_max": {
+            "type": "number",
+            "example": 32.6
+          },
+          "val_last": {
+            "type": "number",
+            "example": 32.2
+          },
+          "sample_count": {
+            "type": "integer",
+            "example": 12
+          },
+          "quality_ratio": {
+            "type": "number",
+            "nullable": true,
+            "example": 1.0,
+            "description": "Fraction of GOOD samples (0.0\u20131.0)"
+          }
+        }
+      },
+      "TelemetryResponse": {
+        "type": "object",
+        "properties": {
+          "sensor_id": {
+            "type": "integer"
+          },
+          "sensor_tag": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "telemetry",
+              "agg_1min",
+              "agg_5min",
+              "agg_1hour",
+              "agg_1day"
+            ],
+            "description": "Aggregate tier used"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "point_count": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TelemetryPoint"
+            }
+          }
+        }
+      },
+      "LatestValue": {
+        "type": "object",
+        "properties": {
+          "sensor_id": {
+            "type": "integer"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "subsystem": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "nullable": true
+          },
+          "value": {
+            "type": "number"
+          },
+          "quality": {
+            "type": "integer",
+            "description": "0=GOOD, 1=UNCERTAIN, 2=BAD"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BlockLatestResponse": {
+        "type": "object",
+        "properties": {
+          "block_slug": {
+            "type": "string"
+          },
+          "sensor_count": {
+            "type": "integer"
+          },
+          "readings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LatestValue"
+            }
+          }
+        }
+      },
+      "MultiTelemetryResponse": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sensors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/TelemetryPoint"
+              }
+            },
+            "description": "Keyed by sensor_id"
+          }
+        }
+      },
+      "Alarm": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "sensor_id": {
+            "type": "integer"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "ACKED",
+              "RTN_UNACK",
+              "CLEARED",
+              "SHELVED",
+              "SUPPRESSED"
+            ]
+          },
+          "tag": {
+            "type": "string"
+          },
+          "subsystem": {
+            "type": "string"
+          },
+          "site_id": {
+            "type": "string"
+          },
+          "block_id": {
+            "type": "string"
+          },
+          "value_at_raise": {
+            "type": "number",
+            "nullable": true
+          },
+          "value_at_clear": {
+            "type": "number",
+            "nullable": true
+          },
+          "threshold_value": {
+            "type": "number",
+            "nullable": true
+          },
+          "threshold_direction": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "HIGH",
+              "LOW"
+            ]
+          },
+          "raised_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "acked_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "acked_by": {
+            "type": "string",
+            "nullable": true
+          },
+          "cleared_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "shelved_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "shelved_by": {
+            "type": "string",
+            "nullable": true
+          },
+          "shelved_until": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "shelve_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "suppressed_by_alarm_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "response_time_seconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "last_value": {
+            "type": "number",
+            "nullable": true
+          },
+          "last_seen": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "AlarmListResponse": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "description": "Total matching alarms"
+          },
+          "standing": {
+            "type": "integer",
+            "description": "ACTIVE + RTN_UNACK count"
+          },
+          "alarms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Alarm"
+            }
+          }
+        }
+      },
+      "AlarmAckRequest": {
+        "type": "object",
+        "required": [
+          "operator"
+        ],
+        "properties": {
+          "operator": {
+            "type": "string",
+            "minLength": 1,
+            "example": "nick.searra"
+          }
+        }
+      },
+      "AlarmShelveRequest": {
+        "type": "object",
+        "required": [
+          "operator",
+          "reason"
+        ],
+        "properties": {
+          "operator": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500,
+            "example": "Sensor calibration in progress"
+          },
+          "duration_hours": {
+            "type": "number",
+            "default": 8.0,
+            "minimum": 0.5,
+            "maximum": 24.0
+          }
+        }
+      },
+      "AlarmStats": {
+        "type": "object",
+        "properties": {
+          "standing": {
+            "type": "integer"
+          },
+          "acked": {
+            "type": "integer"
+          },
+          "shelved": {
+            "type": "integer"
+          },
+          "suppressed": {
+            "type": "integer"
+          },
+          "raised_last_hour": {
+            "type": "integer"
+          },
+          "avg_response_seconds_24h": {
+            "type": "number"
+          },
+          "isa_18_2_target_per_hour": {
+            "type": "integer",
+            "example": 6
+          },
+          "compliant": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Event": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "block_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "event_type": {
+            "type": "string",
+            "example": "alarm_raised",
+            "description": "Event types: alarm_raised, alarm_acked, alarm_cleared,\nalarm_rtn_unack, alarm_shelved, alarm_unshelved,\nalarm_suppressed, alarm_unsuppressed, mode_change,\nequipment_state_change, operator_action\n"
+          },
+          "payload": {
+            "type": "object",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "EventListResponse": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            }
+          }
+        }
+      },
+      "BillingKwhRow": {
+        "type": "object",
+        "properties": {
+          "bucket": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sensor_id": {
+            "type": "integer"
+          },
+          "sensor_tag": {
+            "type": "string",
+            "example": "P-MSB-TOTAL"
+          },
+          "equipment_tag": {
+            "type": "string"
+          },
+          "block_slug": {
+            "type": "string"
+          },
+          "site_slug": {
+            "type": "string"
+          },
+          "kwh_value": {
+            "type": "number",
+            "nullable": true,
+            "description": "Energy in kWh for this 5-min interval"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "sample_count": {
+            "type": "integer"
+          },
+          "quality_good_ratio": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "BillingKwhResponse": {
+        "type": "object",
+        "properties": {
+          "block_slug": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total_kwh": {
+            "type": "number",
+            "description": "Sum of all kwh_value rows"
+          },
+          "row_count": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingKwhRow"
+            }
+          }
+        }
+      },
+      "BillingKwhtRow": {
+        "type": "object",
+        "properties": {
+          "bucket": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sensor_id": {
+            "type": "integer"
+          },
+          "sensor_tag": {
+            "type": "string",
+            "example": "TM-01-HEAT-RATE"
+          },
+          "equipment_tag": {
+            "type": "string"
+          },
+          "block_slug": {
+            "type": "string"
+          },
+          "site_slug": {
+            "type": "string"
+          },
+          "kwht_value": {
+            "type": "number",
+            "nullable": true,
+            "description": "Thermal energy in kWht for this 5-min interval"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "sample_count": {
+            "type": "integer"
+          },
+          "quality_good_ratio": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "BillingKwhtResponse": {
+        "type": "object",
+        "properties": {
+          "block_slug": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "total_kwht": {
+            "type": "number"
+          },
+          "row_count": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingKwhtRow"
+            }
+          }
+        }
+      },
+      "EnergyDailySummary": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "block_slug": {
+            "type": "string"
+          },
+          "site_slug": {
+            "type": "string"
+          },
+          "electrical_kwh": {
+            "type": "number"
+          },
+          "thermal_kwht_recovered": {
+            "type": "number"
+          },
+          "thermal_kwht_rejected": {
+            "type": "number"
+          },
+          "heat_recovery_ratio": {
+            "type": "number",
+            "description": "thermal_recovered / electrical (0.0\u20131.0)"
+          },
+          "pue_estimate": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded"
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "db_connected": {
+            "type": "boolean"
+          },
+          "redis_connected": {
+            "type": "boolean"
+          },
+          "uptime_seconds": {
+            "type": "number"
+          }
+        }
+      },
+      "Stats": {
+        "type": "object",
+        "properties": {
+          "telemetry": {
+            "type": "object"
+          },
+          "aggregates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "alarms": {
+            "type": "object"
+          },
+          "dead_letter_24h": {
+            "type": "integer"
+          }
+        }
+      },
+      "WsTelemetryMessage": {
+        "description": "Message format on WS /ws/telemetry/{block_slug}",
+        "type": "object",
+        "properties": {
+          "sensor_id": {
+            "type": "integer"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "subsystem": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          },
+          "quality": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WsAlarmMessage": {
+        "description": "Message format on WS /ws/alarms",
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "alarm_raised",
+              "alarm_acked",
+              "alarm_cleared",
+              "alarm_rtn_unack",
+              "alarm_shelved",
+              "alarm_unshelved",
+              "alarm_suppressed",
+              "alarm_unsuppressed"
+            ]
+          },
+          "alarm": {
+            "$ref": "#/components/schemas/Alarm"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

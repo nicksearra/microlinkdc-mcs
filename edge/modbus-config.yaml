@@ -1,0 +1,582 @@
+# ═══════════════════════════════════════════════════════════════
+# MicroLink MCS — Modbus Adapter Configuration
+# Site: AB InBev Baldwinsville · Block: block-01
+# ═══════════════════════════════════════════════════════════════
+#
+# This config drives the modbus_adapter.py polling engine.
+# Register addresses match the Master Point Schedule.
+
+site_id: ab-baldwinsville
+block_id: block-01
+
+# ─── Local MQTT broker ────────────────────────────────────────
+mqtt:
+  host: localhost
+  port: 1883
+  keepalive: 60
+  client_id: modbus-adapter-ab-bville-01
+
+# ─── Polling groups (ms) ─────────────────────────────────────
+polling_groups:
+  safety: 1000    # Leak detectors, freeze, PRV, PLC health
+  fast: 2000      # Thermal process values
+  normal: 5000    # Electrical, environmental
+  slow: 30000     # Chemistry, non-critical
+
+# ═══════════════════════════════════════════════════════════════
+# DEVICE 1: Revenue Power Meter (Schneider ION9000)
+# Modbus TCP · 192.168.10.10:502 · Slave 1
+# ═══════════════════════════════════════════════════════════════
+devices:
+  - name: power-meter-MET01
+    device_id: MET-01
+    mode: tcp
+    host: 192.168.10.10
+    port: 502
+    slave_id: 1
+    byte_order: big
+    timeout: 3.0
+    registers:
+      - tag: MET-01-kW
+        description: Revenue meter — active power
+        subsystem: electrical
+        register: 40001
+        data_type: FLOAT32
+        unit: "kW"
+        range_min: 0
+        range_max: 2000
+        poll_group: normal
+        alarm_thresholds:
+          P3_high: 1200
+
+      - tag: MET-01-kVA
+        description: Revenue meter — apparent power
+        subsystem: electrical
+        register: 40003
+        data_type: FLOAT32
+        unit: "kVA"
+        range_min: 0
+        range_max: 2200
+        poll_group: normal
+        alarm_thresholds:
+          P3_high: 1400
+
+      - tag: MET-01-V-L1
+        description: Revenue meter — voltage L1-N
+        subsystem: electrical
+        register: 40007
+        data_type: FLOAT32
+        unit: "V"
+        range_min: 0
+        range_max: 600
+        poll_group: normal
+        alarm_thresholds:
+          P2_low: 440
+          P2_high: 460
+          P3_low: 420
+          P3_high: 500
+
+      - tag: MET-01-V-L2
+        description: Revenue meter — voltage L2-N
+        subsystem: electrical
+        register: 40009
+        data_type: FLOAT32
+        unit: "V"
+        range_min: 0
+        range_max: 600
+        poll_group: normal
+        alarm_thresholds:
+          P2_low: 440
+          P2_high: 460
+          P3_low: 420
+          P3_high: 500
+
+      - tag: MET-01-V-L3
+        description: Revenue meter — voltage L3-N
+        subsystem: electrical
+        register: 40011
+        data_type: FLOAT32
+        unit: "V"
+        range_min: 0
+        range_max: 600
+        poll_group: normal
+        alarm_thresholds:
+          P2_low: 440
+          P2_high: 460
+          P3_low: 420
+          P3_high: 500
+
+      - tag: MET-01-PF
+        description: Revenue meter — power factor
+        subsystem: electrical
+        register: 40019
+        data_type: FLOAT32
+        unit: "pf"
+        range_min: 0
+        range_max: 1
+        poll_group: normal
+        alarm_thresholds:
+          P2_low: 0.85
+          P3_low: 0.90
+
+      - tag: MET-01-Hz
+        description: Revenue meter — frequency
+        subsystem: electrical
+        register: 40021
+        data_type: FLOAT32
+        unit: "Hz"
+        range_min: 45
+        range_max: 65
+        poll_group: normal
+        alarm_thresholds:
+          P0_low: 58
+          P0_high: 62
+          P2_low: 59
+          P2_high: 61
+
+      - tag: MET-01-kWh
+        description: Revenue meter — cumulative energy
+        subsystem: electrical
+        register: 40023
+        data_type: FLOAT32
+        unit: "kWh"
+        range_min: 0
+        range_max: 99999999
+        poll_group: normal
+        # No alarms on cumulative counter
+
+  # ═══════════════════════════════════════════════════════════════
+  # DEVICE 2: Thermal Sensor Module (Beckhoff EL3314 / Wago 750)
+  # Modbus TCP · 192.168.10.20:502 · Slave 1
+  # Loop 2 process values + HX + CDU temps
+  # ═══════════════════════════════════════════════════════════════
+  - name: thermal-sensors
+    device_id: THERM-MOD-01
+    mode: tcp
+    host: 192.168.10.20
+    port: 502
+    slave_id: 1
+    byte_order: big
+    timeout: 3.0
+    registers:
+      # ─── Loop 2 headers ───
+      - tag: TT-L2s
+        description: Loop 2 supply header temperature
+        subsystem: thermal-l2
+        register: 42001
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: 10
+        range_max: 70
+        poll_group: fast
+        alarm_thresholds:
+          P0_high: 60
+          P0_low: 10
+          P1_high: 55
+          P2_high: 52
+          P3_high: 48
+
+      - tag: TT-L2r
+        description: Loop 2 return header temperature
+        subsystem: thermal-l2
+        register: 42003
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: 5
+        range_max: 60
+        poll_group: fast
+        alarm_thresholds:
+          P0_high: 55
+          P0_low: 5
+          P1_high: 50
+          P2_high: 45
+          P3_high: 40
+
+      - tag: FT-L2
+        description: Loop 2 volumetric flow rate
+        subsystem: thermal-l2
+        register: 42005
+        data_type: FLOAT32
+        unit: "m³/h"
+        range_min: 0
+        range_max: 30
+        poll_group: fast
+        alarm_thresholds:
+          P0_low: 3
+          P3_low: 5
+
+      - tag: PT-L2s
+        description: Loop 2 supply pressure
+        subsystem: thermal-l2
+        register: 42007
+        data_type: FLOAT32
+        unit: "kPa"
+        range_min: 0
+        range_max: 600
+        poll_group: fast
+        alarm_thresholds:
+          P0_high: 450
+          P0_low: 50
+          P1_high: 400
+          P2_high: 350
+          P3_high: 300
+
+      # ─── CDU-01 ───
+      - tag: TT-CDU1s
+        description: CDU-01 supply temp to racks
+        subsystem: thermal-l1
+        register: 41001
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: 10
+        range_max: 60
+        poll_group: fast
+        alarm_thresholds:
+          P0_high: 55
+          P1_high: 50
+          P2_high: 48
+
+      - tag: TT-CDU1r
+        description: CDU-01 return temp from racks
+        subsystem: thermal-l1
+        register: 41003
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: 10
+        range_max: 70
+        poll_group: fast
+        alarm_thresholds:
+          P0_high: 60
+          P1_high: 55
+          P2_high: 52
+
+      - tag: FT-CDU1
+        description: CDU-01 coolant flow rate
+        subsystem: thermal-l1
+        register: 41005
+        data_type: FLOAT32
+        unit: "m³/h"
+        range_min: 0
+        range_max: 20
+        poll_group: fast
+        alarm_thresholds:
+          P0_low: 2
+          P3_low: 3
+
+      # ─── HX ───
+      - tag: TT-HXpIn
+        description: HX primary inlet temp
+        subsystem: thermal-hx
+        register: 43001
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: 10
+        range_max: 70
+        poll_group: fast
+        alarm_thresholds:
+          P0_high: 60
+          P1_high: 55
+          P2_high: 50
+
+      - tag: TT-HXsOut
+        description: HX secondary outlet temp (to host)
+        subsystem: thermal-hx
+        register: 43007
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: 10
+        range_max: 60
+        poll_group: fast
+        alarm_thresholds:
+          P1_high: 55
+          P2_high: 50
+          P3_high: 48
+
+      - tag: TT-HX-approach
+        description: HX approach delta-T
+        subsystem: thermal-hx
+        register: 43015
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: 0
+        range_max: 30
+        poll_group: fast
+        alarm_thresholds:
+          P1_high: 15
+          P2_high: 10
+          P3_high: 8
+
+      # ─── Billing thermal meter ───
+      - tag: FT-BIL
+        description: Billing meter — volumetric flow
+        subsystem: thermal-hx
+        register: 43101
+        data_type: FLOAT32
+        unit: "m³/h"
+        range_min: 0
+        range_max: 30
+        poll_group: fast
+        alarm_thresholds:
+          P3_low: 2
+
+      - tag: MET-T1-kWt
+        description: Billing meter — instantaneous thermal power
+        subsystem: thermal-hx
+        register: 43107
+        data_type: FLOAT32
+        unit: "kW"
+        range_min: 0
+        range_max: 1000
+        poll_group: fast
+
+      - tag: MET-T1-kWht
+        description: Billing meter — cumulative thermal energy
+        subsystem: thermal-hx
+        register: 43109
+        data_type: FLOAT32
+        unit: "kWht"
+        range_min: 0
+        range_max: 99999999
+        poll_group: normal
+
+      # ─── Dry cooler ───
+      - tag: TT-DCin
+        description: Dry cooler inlet temp
+        subsystem: thermal-reject
+        register: 44001
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: 0
+        range_max: 70
+        poll_group: fast
+        alarm_thresholds:
+          P1_high: 55
+          P2_high: 50
+          P3_high: 48
+
+      - tag: TT-DCout
+        description: Dry cooler outlet temp
+        subsystem: thermal-reject
+        register: 44003
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: -20
+        range_max: 60
+        poll_group: fast
+        alarm_thresholds:
+          P1_high: 50
+          P2_high: 45
+          P3_high: 42
+
+      - tag: TT-AMB
+        description: Ambient air temperature
+        subsystem: thermal-reject
+        register: 44005
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: -40
+        range_max: 55
+        poll_group: fast
+        alarm_thresholds:
+          P0_high: 45
+          P0_low: -25
+          P1_high: 40
+          P1_low: -20
+          P2_high: 35
+          P2_low: -15
+
+  # ═══════════════════════════════════════════════════════════════
+  # DEVICE 3: Safety I/O Module (Wago 750-352 + safety modules)
+  # Modbus RTU · /dev/ttyUSB0 · 9600 baud · Slave 3
+  # Leak detectors, freeze, PRV, PLC status
+  # ═══════════════════════════════════════════════════════════════
+  - name: safety-io
+    device_id: SAFETY-IO-01
+    mode: rtu
+    serial_port: /dev/ttyUSB0
+    baudrate: 9600
+    slave_id: 3
+    byte_order: big
+    timeout: 2.0
+    registers:
+      # ─── Leak detection ───
+      - tag: LD-01a
+        description: Leak detector — TPM zone — rope sensor
+        subsystem: thermal-safety
+        register: 45001
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_high: 1
+
+      - tag: LD-01b
+        description: Leak detector — TPM zone — spot sensor
+        subsystem: thermal-safety
+        register: 45002
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_high: 1
+
+      - tag: LD-02a
+        description: Leak detector — pipe rack — rope sensor
+        subsystem: thermal-safety
+        register: 45003
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_high: 1
+
+      - tag: LD-02b
+        description: Leak detector — pipe rack — spot sensor
+        subsystem: thermal-safety
+        register: 45004
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_high: 1
+
+      - tag: LD-03a
+        description: Leak detector — CDU area — rope sensor
+        subsystem: thermal-safety
+        register: 45005
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_high: 1
+
+      - tag: LD-03b
+        description: Leak detector — CDU area — spot sensor
+        subsystem: thermal-safety
+        register: 45006
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_high: 1
+
+      - tag: LD-04a
+        description: Leak detector — HX bay — rope sensor
+        subsystem: thermal-safety
+        register: 45007
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_high: 1
+
+      - tag: LD-04b
+        description: Leak detector — HX bay — spot sensor
+        subsystem: thermal-safety
+        register: 45008
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_high: 1
+
+      # ─── Freeze protection ───
+      - tag: TT-FREEZE-L2
+        description: Loop 2 freeze protection sensor
+        subsystem: thermal-safety
+        register: 45101
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: -40
+        range_max: 60
+        poll_group: safety
+        alarm_thresholds:
+          P0_low: -10
+          P2_low: -5
+          P3_low: 0
+
+      - tag: TT-FREEZE-L3
+        description: Loop 3 freeze protection sensor
+        subsystem: thermal-safety
+        register: 45103
+        data_type: FLOAT32
+        unit: "°C"
+        range_min: -40
+        range_max: 60
+        poll_group: safety
+        alarm_thresholds:
+          P0_low: -5
+          P2_low: 0
+          P3_low: 2
+
+      # ─── PRV ───
+      - tag: PRV-L2-status
+        description: Loop 2 PRV status
+        subsystem: thermal-safety
+        register: 45201
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_high: 1
+
+      # ─── Safety PLC health ───
+      - tag: PLC-SAFE-status
+        description: Safety PLC running status
+        subsystem: thermal-safety
+        register: 45401
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 1
+        poll_group: safety
+        alarm_thresholds:
+          P0_low: 0
+
+      - tag: PLC-SAFE-mode
+        description: Safety PLC current mode output
+        subsystem: thermal-safety
+        register: 45403
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 3
+        poll_group: safety
+
+      - tag: PLC-SAFE-watchdog
+        description: Safety PLC watchdog counter
+        subsystem: thermal-safety
+        register: 45405
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 65535
+        poll_group: safety
+
+      - tag: PLC-SAFE-faults
+        description: Safety PLC fault register
+        subsystem: thermal-safety
+        register: 45407
+        data_type: UINT16
+        unit: "bool"
+        range_min: 0
+        range_max: 65535
+        poll_group: safety

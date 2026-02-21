@@ -1,0 +1,562 @@
+# ═══════════════════════════════════════════════════════════════
+# MicroLink MCS — SNMP Adapter Configuration
+# Site: AB InBev Baldwinsville · Block: block-01
+# ═══════════════════════════════════════════════════════════════
+
+site_id: ab-baldwinsville
+block_id: block-01
+
+mqtt:
+  host: localhost
+  port: 1883
+  client_id: snmp-adapter-ab-bville-01
+
+polling_groups:
+  normal: 5000
+  slow: 30000
+
+devices:
+  # ═══════════════════════════════════════════════════════════
+  # UPS — APC Smart-UPS (SNMPv2c)
+  # ═══════════════════════════════════════════════════════════
+  - name: ups-01
+    device_id: UPS-01
+    host: 192.168.10.30
+    port: 161
+    version: v2c
+    community: microlink-ro
+    timeout: 5.0
+    retries: 2
+    oids:
+      - tag: UPS-01-status
+        description: UPS operating status
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.318.1.1.1.4.1.1.0"
+        unit: "bool"
+        data_type: bool
+        poll_group: normal
+
+      - tag: UPS-01-load
+        description: UPS load percentage
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.318.1.1.1.4.2.3.0"
+        unit: "%"
+        data_type: float
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P0_high: 100
+          P1_high: 95
+          P2_high: 90
+
+      - tag: UPS-01-batt-pct
+        description: UPS battery charge percentage
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.318.1.1.1.2.2.1.0"
+        unit: "%"
+        data_type: float
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P0_low: 20
+          P2_low: 30
+
+      - tag: UPS-01-runtime
+        description: UPS estimated runtime remaining (minutes)
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.318.1.1.1.2.2.3.0"
+        unit: "min"
+        data_type: int
+        scale: 0.01   # APC returns in hundredths of minutes (ticks)
+        range_min: 0
+        range_max: 999
+        poll_group: normal
+        alarm_thresholds:
+          P0_low: 5
+          P2_low: 8
+
+      - tag: UPS-01-T-int
+        description: UPS internal temperature
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.318.1.1.1.2.2.2.0"
+        unit: "°C"
+        data_type: float
+        range_min: 0
+        range_max: 60
+        poll_group: normal
+        alarm_thresholds:
+          P0_high: 50
+          P1_high: 45
+          P2_high: 40
+
+      - tag: UPS-01-V-in
+        description: UPS input voltage
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.318.1.1.1.3.2.1.0"
+        unit: "V"
+        data_type: float
+        range_min: 0
+        range_max: 600
+        poll_group: normal
+        alarm_thresholds:
+          P2_low: 440
+          P2_high: 500
+          P3_low: 420
+          P3_high: 510
+
+      - tag: UPS-01-V-out
+        description: UPS output voltage
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.318.1.1.1.4.2.1.0"
+        unit: "V"
+        data_type: float
+        range_min: 0
+        range_max: 600
+        poll_group: normal
+        alarm_thresholds:
+          P2_low: 460
+          P2_high: 500
+          P3_low: 440
+          P3_high: 510
+
+      - tag: UPS-01-on-batt
+        description: UPS on battery indicator
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.318.1.1.1.2.1.1.0"
+        unit: "bool"
+        data_type: bool
+        poll_group: fast
+        alarm_thresholds:
+          P1_high: 1
+
+  # ═══════════════════════════════════════════════════════════
+  # PDU-01 — Raritan PX3 (racks 1-5)
+  # ═══════════════════════════════════════════════════════════
+  - name: pdu-01
+    device_id: PDU-01
+    host: 192.168.10.40
+    port: 161
+    version: v2c
+    community: microlink-ro
+    timeout: 5.0
+    oids:
+      - tag: PDU-01-kW
+        description: PDU-01 total power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.5.2.3.1.7.1.1.0"
+        unit: "kW"
+        data_type: float
+        scale: 0.001   # Raritan reports in watts
+        range_min: 0
+        range_max: 500
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 400
+          P2_high: 380
+
+      - tag: PDU-01-A-L1
+        description: PDU-01 current L1
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.1"
+        unit: "A"
+        data_type: float
+        scale: 0.1    # Raritan reports in tenths of amps
+        range_min: 0
+        range_max: 800
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 700
+          P3_high: 600
+
+      - tag: PDU-01-A-L2
+        description: PDU-01 current L2
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.2"
+        unit: "A"
+        data_type: float
+        scale: 0.1
+        range_min: 0
+        range_max: 800
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 700
+          P3_high: 600
+
+      - tag: PDU-01-A-L3
+        description: PDU-01 current L3
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.3"
+        unit: "A"
+        data_type: float
+        scale: 0.1
+        range_min: 0
+        range_max: 800
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 700
+          P3_high: 600
+
+      - tag: PDU-01-kWh
+        description: PDU-01 cumulative energy
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.5.2.3.1.8.1.1.0"
+        unit: "kWh"
+        data_type: float
+        scale: 0.001   # Wh to kWh
+        range_min: 0
+        range_max: 99999999
+        poll_group: normal
+
+      - tag: PDU-01-V
+        description: PDU-01 voltage L1-L2
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.5.2.3.1.3.1.1.1"
+        unit: "V"
+        data_type: float
+        scale: 0.1
+        range_min: 0
+        range_max: 600
+        poll_group: normal
+        alarm_thresholds:
+          P2_low: 440
+          P2_high: 500
+          P3_high: 510
+
+      - tag: PDU-01-T
+        description: PDU-01 internal temperature
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.5.2.3.1.21.1.1"
+        unit: "°C"
+        data_type: float
+        range_min: 0
+        range_max: 80
+        poll_group: normal
+        alarm_thresholds:
+          P0_high: 70
+          P1_high: 60
+          P2_high: 50
+
+      # ─── Per-rack power (via PDU outlet groups) ───
+      - tag: RK-01-kW
+        description: Rack 01 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.1"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+      - tag: RK-02-kW
+        description: Rack 02 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.2"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+      - tag: RK-03-kW
+        description: Rack 03 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.3"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+      - tag: RK-04-kW
+        description: Rack 04 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.4"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+      - tag: RK-05-kW
+        description: Rack 05 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.5"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+  # ═══════════════════════════════════════════════════════════
+  # PDU-02 — Raritan PX3 (racks 6-10)
+  # ═══════════════════════════════════════════════════════════
+  - name: pdu-02
+    device_id: PDU-02
+    host: 192.168.10.41
+    port: 161
+    version: v2c
+    community: microlink-ro
+    timeout: 5.0
+    oids:
+      - tag: PDU-02-kW
+        description: PDU-02 total power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.5.2.3.1.7.1.2.0"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 500
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 400
+          P2_high: 380
+
+      - tag: PDU-02-kWh
+        description: PDU-02 cumulative energy
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.5.2.3.1.8.1.2.0"
+        unit: "kWh"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 99999999
+        poll_group: normal
+
+      - tag: RK-06-kW
+        description: Rack 06 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.1"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+      - tag: RK-07-kW
+        description: Rack 07 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.2"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+      - tag: RK-08-kW
+        description: Rack 08 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.3"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+      - tag: RK-09-kW
+        description: Rack 09 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.4"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+      - tag: RK-10-kW
+        description: Rack 10 IT power
+        subsystem: electrical
+        oid: "1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.5"
+        unit: "kW"
+        data_type: float
+        scale: 0.001
+        range_min: 0
+        range_max: 100
+        poll_group: normal
+        alarm_thresholds:
+          P1_high: 85
+          P2_high: 80
+
+  # ═══════════════════════════════════════════════════════════
+  # Core Switch — Cisco/Aruba (SNMPv3)
+  # ═══════════════════════════════════════════════════════════
+  - name: switch-core-01
+    device_id: SW-01
+    host: 192.168.10.1
+    port: 161
+    version: v3
+    username: microlink_monitor
+    auth_protocol: SHA
+    auth_password: "${SNMP_AUTH_PASS}"     # Env var reference — resolved at runtime
+    priv_protocol: AES128
+    priv_password: "${SNMP_PRIV_PASS}"
+    timeout: 5.0
+    retries: 2
+    oids:
+      - tag: SW-01-status
+        description: Core switch 01 reachability
+        subsystem: network
+        oid: "1.3.6.1.2.1.1.3.0"
+        unit: "bool"
+        data_type: bool
+        poll_group: slow
+
+      - tag: SW-01-cpu
+        description: Core switch 01 CPU utilisation
+        subsystem: network
+        oid: "1.3.6.1.4.1.9.9.109.1.1.1.1.7.1"
+        unit: "%"
+        data_type: float
+        range_min: 0
+        range_max: 100
+        poll_group: slow
+        alarm_thresholds:
+          P1_high: 90
+          P2_high: 80
+
+      - tag: SW-01-temp
+        description: Core switch 01 temperature
+        subsystem: network
+        oid: "1.3.6.1.4.1.9.9.13.1.3.1.3.1"
+        unit: "°C"
+        data_type: float
+        range_min: 0
+        range_max: 80
+        poll_group: slow
+        alarm_thresholds:
+          P0_high: 70
+          P1_high: 60
+          P2_high: 55
+
+      - tag: SW-01-uplink1-bw
+        description: Uplink 1 bandwidth utilisation
+        subsystem: network
+        oid: "1.3.6.1.2.1.2.2.1.10.1"
+        unit: "%"
+        data_type: counter
+        is_counter: true
+        counter_unit: "Mbps"
+        counter_scale: 0.000008   # bytes/sec to Mbps (×8 ÷ 1e6)
+        range_min: 0
+        range_max: 10000
+        poll_group: slow
+        alarm_thresholds:
+          P1_high: 9500
+          P2_high: 9000
+
+      - tag: SW-01-uplink2-bw
+        description: Uplink 2 bandwidth utilisation
+        subsystem: network
+        oid: "1.3.6.1.2.1.2.2.1.10.2"
+        unit: "%"
+        data_type: counter
+        is_counter: true
+        counter_unit: "Mbps"
+        counter_scale: 0.000008
+        range_min: 0
+        range_max: 10000
+        poll_group: slow
+        alarm_thresholds:
+          P1_high: 9500
+          P2_high: 9000
+
+      - tag: SW-01-uplink1-status
+        description: Uplink 1 port status
+        subsystem: network
+        oid: "1.3.6.1.2.1.2.2.1.8.1"
+        unit: "bool"
+        data_type: bool
+        poll_group: slow
+
+      - tag: SW-01-uplink2-status
+        description: Uplink 2 port status
+        subsystem: network
+        oid: "1.3.6.1.2.1.2.2.1.8.2"
+        unit: "bool"
+        data_type: bool
+        poll_group: slow
+
+      - tag: SW-01-errors
+        description: Switch total interface errors
+        subsystem: network
+        oid: "1.3.6.1.2.1.2.2.1.20.0"
+        unit: "bool"
+        data_type: counter
+        is_counter: true
+        counter_unit: "errors/s"
+        counter_scale: 1.0
+        range_min: 0
+        range_max: 99999
+        poll_group: slow
+        alarm_thresholds:
+          P2_high: 100
+
+  # ═══════════════════════════════════════════════════════════
+  # Access Switch (customer-facing)
+  # ═══════════════════════════════════════════════════════════
+  - name: switch-access-02
+    device_id: SW-02
+    host: 192.168.10.2
+    port: 161
+    version: v2c
+    community: microlink-ro
+    timeout: 5.0
+    oids:
+      - tag: SW-02-status
+        description: Access switch 02 reachability
+        subsystem: network
+        oid: "1.3.6.1.2.1.1.3.0"
+        unit: "bool"
+        data_type: bool
+        poll_group: slow
+
+      - tag: SW-02-cpu
+        description: Access switch 02 CPU utilisation
+        subsystem: network
+        oid: "1.3.6.1.4.1.9.9.109.1.1.1.1.7.1"
+        unit: "%"
+        data_type: float
+        range_min: 0
+        range_max: 100
+        poll_group: slow
+        alarm_thresholds:
+          P1_high: 90
+          P2_high: 80

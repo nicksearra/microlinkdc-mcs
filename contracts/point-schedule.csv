@@ -1,0 +1,353 @@
+tag,description,subsystem,equipment_parent,protocol,protocol_address,data_type,unit,range_min,range_max,precision,poll_rate_ms,alarm_P0_low,alarm_P0_high,alarm_P1_low,alarm_P1_high,alarm_P2_low,alarm_P2_high,alarm_P3_low,alarm_P3_high,engineering_notes
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# MICROLINK MCS — MASTER POINT SCHEDULE
+# Site: AB InBev Baldwinsville · Block: block-01 · Capacity: 1MW
+# Version: 1.0.0 · Date: 2026-02-21
+# Total points: 342
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+# ─── ELECTRICAL — UTILITY INTAKE & REVENUE METER ───,,,,,,,,,,,,,,,,,,,,
+MET-01-kW,Revenue meter — active power,electrical,MET-01,modbus-tcp,40001,FLOAT32,kW,0,2000,0.1,5000,,,,,,,1200,,Billing-grade Class 0.5. Schneider ION9000. Primary revenue meter.
+MET-01-kVA,Revenue meter — apparent power,electrical,MET-01,modbus-tcp,40003,FLOAT32,kVA,0,2200,0.1,5000,,,,,,,,1400,Apparent power for demand charge calculation
+MET-01-kVAr,Revenue meter — reactive power,electrical,MET-01,modbus-tcp,40005,FLOAT32,kVAr,-500,500,0.1,5000,,,,,,,,400,Reactive power monitoring
+MET-01-V-L1,Revenue meter — voltage L1-N,electrical,MET-01,modbus-tcp,40007,FLOAT32,V,0,600,0.1,5000,,,,,,440,460,420,500,13.8kV stepped to 480V. Monitor secondary side.
+MET-01-V-L2,Revenue meter — voltage L2-N,electrical,MET-01,modbus-tcp,40009,FLOAT32,V,0,600,0.1,5000,,,,,,440,460,420,500,
+MET-01-V-L3,Revenue meter — voltage L3-N,electrical,MET-01,modbus-tcp,40011,FLOAT32,V,0,600,0.1,5000,,,,,,440,460,420,500,
+MET-01-A-L1,Revenue meter — current L1,electrical,MET-01,modbus-tcp,40013,FLOAT32,A,0,3000,0.1,5000,,,,2500,,,,2200,
+MET-01-A-L2,Revenue meter — current L2,electrical,MET-01,modbus-tcp,40015,FLOAT32,A,0,3000,0.1,5000,,,,2500,,,,2200,
+MET-01-A-L3,Revenue meter — current L3,electrical,MET-01,modbus-tcp,40017,FLOAT32,A,0,3000,0.1,5000,,,,2500,,,,2200,
+MET-01-PF,Revenue meter — power factor,electrical,MET-01,modbus-tcp,40019,FLOAT32,pf,0,1,0.01,5000,,,,,,0.85,,,0.90,Lagging PF. Investigate if <0.90.
+MET-01-Hz,Revenue meter — frequency,electrical,MET-01,modbus-tcp,40021,FLOAT32,Hz,45,65,0.01,5000,58,,62,,59,,61,,US grid 60Hz nominal
+MET-01-kWh,Revenue meter — cumulative energy,electrical,MET-01,modbus-tcp,40023,FLOAT32,kWh,0,99999999,0.1,5000,,,,,,,,,"Cumulative counter. Never resets. Used for billing reconciliation."
+MET-01-THD-V,Revenue meter — voltage THD,electrical,MET-01,modbus-tcp,40025,FLOAT32,%,0,100,0.1,30000,,,,,,,5,,8,IEEE 519 limit 5% for <69kV
+# ─── ELECTRICAL — TRANSFORMER ───,,,,,,,,,,,,,,,,,,,,
+TX-01-T-pri,Transformer primary winding temp,electrical,TX-01,modbus-rtu,40101,FLOAT32,°C,-20,180,0.1,5000,,150,,130,,120,,,Dry-type 1500kVA. Class F insulation (155°C limit).
+TX-01-T-sec,Transformer secondary winding temp,electrical,TX-01,modbus-rtu,40103,FLOAT32,°C,-20,180,0.1,5000,,150,,130,,120,,,
+TX-01-T-amb,Transformer ambient temp,electrical,TX-01,modbus-rtu,40105,FLOAT32,°C,-40,60,0.1,5000,,50,,45,,40,,,Outdoor pad — ambient monitoring
+TX-01-load,Transformer load percentage,electrical,TX-01,modbus-rtu,40107,FLOAT32,%,0,150,0.1,5000,,120,,110,,100,,,Alarm if sustained >100% (overload)
+TX-01-fan,Transformer cooling fan status,electrical,TX-01,modbus-rtu,40109,UINT16,bool,0,1,1,5000,,,,,,,,,"0=off, 1=running. Auto-starts at 75% load."
+# ─── ELECTRICAL — MAIN SWITCHBOARD ───,,,,,,,,,,,,,,,,,,,,
+MSB-01-V-L1,MSB bus voltage L1-L2,electrical,MSB-01,modbus-tcp,40201,FLOAT32,V,0,600,0.1,5000,,,,,,440,500,420,510,
+MSB-01-V-L2,MSB bus voltage L2-L3,electrical,MSB-01,modbus-tcp,40203,FLOAT32,V,0,600,0.1,5000,,,,,,440,500,420,510,
+MSB-01-V-L3,MSB bus voltage L3-L1,electrical,MSB-01,modbus-tcp,40205,FLOAT32,V,0,600,0.1,5000,,,,,,440,500,420,510,
+MSB-01-A-total,MSB total current,electrical,MSB-01,modbus-tcp,40207,FLOAT32,A,0,3000,0.1,5000,,,,2800,,,,2500,
+MSB-01-kW,MSB total active power,electrical,MSB-01,modbus-tcp,40209,FLOAT32,kW,0,2000,0.1,5000,,,,,,,,1300,Cross-check with MET-01-kW. Variance >2% → investigate.
+MSB-01-T-bus,MSB busbar temperature,electrical,MSB-01,modbus-rtu,40211,FLOAT32,°C,-10,120,0.1,5000,,100,,85,,75,,,IR thermometry. Hot spots indicate loose connections.
+MSB-01-main-CB,MSB main circuit breaker position,electrical,MSB-01,modbus-rtu,40213,UINT16,bool,0,1,1,5000,,,,,,,,,"1=closed/on, 0=tripped/open"
+MSB-01-SPD,MSB surge protection device status,electrical,MSB-01,modbus-rtu,40214,UINT16,bool,0,1,1,30000,,,,,,,,,"1=healthy, 0=needs replacement"
+# ─── ELECTRICAL — UPS (Class B — present) ───,,,,,,,,,,,,,,,,,,,,
+UPS-01-status,UPS operating status,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.4.1.1.0,UINT16,bool,0,1,1,5000,,,,,,,,,"APC SNMP. 1=online, 0=fault/bypass"
+UPS-01-mode,UPS operating mode,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.4.1.1.0,UINT16,bool,0,7,1,5000,,,,,,,,,1=Normal 2=Battery 3=Bypass 4=Standby
+UPS-01-load,UPS load percentage,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.4.2.3.0,FLOAT32,%,0,100,0.1,5000,,100,,95,,90,,,Trip at 100%. Investigate above 85%.
+UPS-01-batt-V,UPS battery voltage,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.2.2.8.0,FLOAT32,V,0,600,0.1,5000,,,,,,,,,"Battery string voltage. Varies by topology."
+UPS-01-batt-pct,UPS battery charge percentage,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.2.2.1.0,FLOAT32,%,0,100,0.1,5000,20,,,,30,,,,Below 30% → schedule battery test
+UPS-01-runtime,UPS estimated runtime remaining,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.2.2.3.0,UINT16,min,0,999,1,5000,5,,,,8,,,,Below 8min triggers P2. Below 5min triggers P0.
+UPS-01-T-int,UPS internal temperature,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.2.2.2.0,FLOAT32,°C,0,60,0.1,5000,,50,,45,,40,,,
+UPS-01-V-in,UPS input voltage,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.3.2.1.0,FLOAT32,V,0,600,0.1,5000,,,,,,440,500,420,510,
+UPS-01-V-out,UPS output voltage,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.4.2.1.0,FLOAT32,V,0,600,0.1,5000,,,,,,460,500,440,510,Output regulation tighter than input
+UPS-01-kW-out,UPS output power,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.4.2.4.0,FLOAT32,kW,0,1500,0.1,5000,,,,,,,,1200,
+UPS-01-on-batt,UPS on battery indicator,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.2.1.1.0,UINT16,bool,0,1,1,2000,,,,,,,,,1=on battery. Generates P1 alarm via SNMP trap.
+UPS-01-bypass,UPS on bypass indicator,electrical,UPS-01,snmp,1.3.6.1.4.1.318.1.1.1.4.1.2.0,UINT16,bool,0,1,1,5000,,,,,,,,,1=bypass active. Maintenance only.
+# ─── ELECTRICAL — PDU-01 (racks 1-5) ───,,,,,,,,,,,,,,,,,,,,
+PDU-01-kW,PDU-01 total power,electrical,PDU-01,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.7.1.1.0,FLOAT32,kW,0,500,0.1,5000,,,,400,,380,,,ServerTech/Raritan. Billing sub-meter for customer racks 1-5.
+PDU-01-A-L1,PDU-01 current L1,electrical,PDU-01,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.1,FLOAT32,A,0,800,0.1,5000,,,,700,,,,600,
+PDU-01-A-L2,PDU-01 current L2,electrical,PDU-01,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.2,FLOAT32,A,0,800,0.1,5000,,,,700,,,,600,
+PDU-01-A-L3,PDU-01 current L3,electrical,PDU-01,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.4.1.1.3,FLOAT32,A,0,800,0.1,5000,,,,700,,,,600,
+PDU-01-kWh,PDU-01 cumulative energy,electrical,PDU-01,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.8.1.1.0,FLOAT32,kWh,0,99999999,0.1,5000,,,,,,,,,"Billing counter. Reconcile monthly with MET-01."
+PDU-01-V,PDU-01 voltage L1-L2,electrical,PDU-01,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.3.1.1.1,FLOAT32,V,0,600,0.1,5000,,,,,,440,500,,510,
+PDU-01-T,PDU-01 internal temperature,electrical,PDU-01,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.21.1.1,FLOAT32,°C,0,80,0.1,5000,,70,,60,,50,,,
+# ─── ELECTRICAL — PDU-02 (racks 6-10) ───,,,,,,,,,,,,,,,,,,,,
+PDU-02-kW,PDU-02 total power,electrical,PDU-02,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.7.1.2.0,FLOAT32,kW,0,500,0.1,5000,,,,400,,380,,,Billing sub-meter for customer racks 6-10
+PDU-02-A-L1,PDU-02 current L1,electrical,PDU-02,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.4.1.2.1,FLOAT32,A,0,800,0.1,5000,,,,700,,,,600,
+PDU-02-A-L2,PDU-02 current L2,electrical,PDU-02,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.4.1.2.2,FLOAT32,A,0,800,0.1,5000,,,,700,,,,600,
+PDU-02-A-L3,PDU-02 current L3,electrical,PDU-02,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.4.1.2.3,FLOAT32,A,0,800,0.1,5000,,,,700,,,,600,
+PDU-02-kWh,PDU-02 cumulative energy,electrical,PDU-02,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.8.1.2.0,FLOAT32,kWh,0,99999999,0.1,5000,,,,,,,,,Billing counter
+PDU-02-V,PDU-02 voltage L1-L2,electrical,PDU-02,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.3.1.2.1,FLOAT32,V,0,600,0.1,5000,,,,,,440,500,,510,
+PDU-02-T,PDU-02 internal temperature,electrical,PDU-02,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.21.1.2,FLOAT32,°C,0,80,0.1,5000,,70,,60,,50,,,
+# ─── ELECTRICAL — PDU-03 (racks 11-14) ───,,,,,,,,,,,,,,,,,,,,
+PDU-03-kW,PDU-03 total power,electrical,PDU-03,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.7.1.3.0,FLOAT32,kW,0,400,0.1,5000,,,,320,,300,,,Billing sub-meter for racks 11-14
+PDU-03-A-L1,PDU-03 current L1,electrical,PDU-03,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.4.1.3.1,FLOAT32,A,0,600,0.1,5000,,,,550,,,,480,
+PDU-03-A-L2,PDU-03 current L2,electrical,PDU-03,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.4.1.3.2,FLOAT32,A,0,600,0.1,5000,,,,550,,,,480,
+PDU-03-A-L3,PDU-03 current L3,electrical,PDU-03,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.4.1.3.3,FLOAT32,A,0,600,0.1,5000,,,,550,,,,480,
+PDU-03-kWh,PDU-03 cumulative energy,electrical,PDU-03,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.8.1.3.0,FLOAT32,kWh,0,99999999,0.1,5000,,,,,,,,,Billing counter
+PDU-03-V,PDU-03 voltage L1-L2,electrical,PDU-03,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.3.1.3.1,FLOAT32,V,0,600,0.1,5000,,,,,,440,500,,510,
+PDU-03-T,PDU-03 internal temperature,electrical,PDU-03,snmp,1.3.6.1.4.1.13742.6.5.2.3.1.21.1.3,FLOAT32,°C,0,80,0.1,5000,,70,,60,,50,,,
+# ─── ELECTRICAL — PER-RACK POWER (14 racks @ 70kW) ───,,,,,,,,,,,,,,,,,,,,
+RK-01-kW,Rack 01 IT power,electrical,RK-01,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.1,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,Per-rack metering via intelligent PDU outlets
+RK-02-kW,Rack 02 IT power,electrical,RK-02,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.2,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-03-kW,Rack 03 IT power,electrical,RK-03,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.3,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-04-kW,Rack 04 IT power,electrical,RK-04,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.4,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-05-kW,Rack 05 IT power,electrical,RK-05,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.1.5,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-06-kW,Rack 06 IT power,electrical,RK-06,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.1,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-07-kW,Rack 07 IT power,electrical,RK-07,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.2,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-08-kW,Rack 08 IT power,electrical,RK-08,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.3,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-09-kW,Rack 09 IT power,electrical,RK-09,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.4,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-10-kW,Rack 10 IT power,electrical,RK-10,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.2.5,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-11-kW,Rack 11 IT power,electrical,RK-11,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.3.1,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-12-kW,Rack 12 IT power,electrical,RK-12,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.3.2,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-13-kW,Rack 13 IT power,electrical,RK-13,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.3.3,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+RK-14-kW,Rack 14 IT power,electrical,RK-14,snmp,1.3.6.1.4.1.13742.6.3.5.4.1.7.1.3.4,FLOAT32,kW,0,100,0.1,5000,,,,85,,80,,,
+# ─── ELECTRICAL — ATS (placeholder for Class C upgrade) ───,,,,,,,,,,,,,,,,,,,,
+ATS-01-pos,ATS switch position,electrical,ATS-01,modbus-rtu,40301,UINT16,bool,0,1,1,5000,,,,,,,,,"0=utility, 1=generator. Present but inactive in Class B."
+ATS-01-src,ATS active source,electrical,ATS-01,modbus-rtu,40302,UINT16,bool,0,2,1,5000,,,,,,,,,"0=none, 1=utility, 2=generator"
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# THERMAL — LOOP 1 (IT SECONDARY — COMPUTE MODULE)
+# CoolIT CDUs, DLC manifolds, per-rack coolant
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+# ─── CDU-01 ───,,,,,,,,,,,,,,,,,,,,
+TT-CDU1s,CDU-01 supply temp to racks,thermal-l1,CDU-01,modbus-tcp,41001,FLOAT32,°C,10,60,0.1,2000,,55,,50,,48,,,CoolIT CDU. Supply to DLC manifold.
+TT-CDU1r,CDU-01 return temp from racks,thermal-l1,CDU-01,modbus-tcp,41003,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,Return from DLC manifold — hottest point in Loop 1
+FT-CDU1,CDU-01 coolant flow rate,thermal-l1,CDU-01,modbus-tcp,41005,FLOAT32,m³/h,0,20,0.1,2000,2,,,,3,,,,Low flow indicates blockage or pump issue
+PT-CDU1,CDU-01 differential pressure,thermal-l1,CDU-01,modbus-tcp,41007,FLOAT32,kPa,0,200,0.1,2000,,150,,120,,100,,,High dP indicates filter clogging
+TT-CDU1-fac-s,CDU-01 facility water supply,thermal-l1,CDU-01,modbus-tcp,41009,FLOAT32,°C,10,60,0.1,2000,,50,,48,,45,,,Loop 2 water into CDU
+TT-CDU1-fac-r,CDU-01 facility water return,thermal-l1,CDU-01,modbus-tcp,41011,FLOAT32,°C,10,70,0.1,2000,,55,,52,,50,,,Loop 2 water leaving CDU — captures IT heat
+CDU1-pump-pct,CDU-01 pump speed,thermal-l1,CDU-01,modbus-tcp,41013,FLOAT32,%,0,100,0.1,2000,,,,,,,,,"0-100% VFD control"
+CDU1-status,CDU-01 operating status,thermal-l1,CDU-01,modbus-tcp,41015,UINT16,bool,0,1,1,2000,,,,,,,,,1=running 0=fault
+# ─── CDU-02 ───,,,,,,,,,,,,,,,,,,,,
+TT-CDU2s,CDU-02 supply temp to racks,thermal-l1,CDU-02,modbus-tcp,41101,FLOAT32,°C,10,60,0.1,2000,,55,,50,,48,,,
+TT-CDU2r,CDU-02 return temp from racks,thermal-l1,CDU-02,modbus-tcp,41103,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+FT-CDU2,CDU-02 coolant flow rate,thermal-l1,CDU-02,modbus-tcp,41105,FLOAT32,m³/h,0,20,0.1,2000,2,,,,3,,,,
+PT-CDU2,CDU-02 differential pressure,thermal-l1,CDU-02,modbus-tcp,41107,FLOAT32,kPa,0,200,0.1,2000,,150,,120,,100,,,
+TT-CDU2-fac-s,CDU-02 facility water supply,thermal-l1,CDU-02,modbus-tcp,41109,FLOAT32,°C,10,60,0.1,2000,,50,,48,,45,,,
+TT-CDU2-fac-r,CDU-02 facility water return,thermal-l1,CDU-02,modbus-tcp,41111,FLOAT32,°C,10,70,0.1,2000,,55,,52,,50,,,
+CDU2-pump-pct,CDU-02 pump speed,thermal-l1,CDU-02,modbus-tcp,41113,FLOAT32,%,0,100,0.1,2000,,,,,,,,,"0-100% VFD"
+CDU2-status,CDU-02 operating status,thermal-l1,CDU-02,modbus-tcp,41115,UINT16,bool,0,1,1,2000,,,,,,,,,1=running 0=fault
+# ─── PER-RACK COOLANT TEMPS (DLC manifold) ───,,,,,,,,,,,,,,,,,,,,
+TT-R01-cool,Rack 01 coolant return temp,thermal-l1,RK-01,modbus-tcp,41201,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,DLC manifold return — indicates rack heat output
+TT-R02-cool,Rack 02 coolant return temp,thermal-l1,RK-02,modbus-tcp,41203,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R03-cool,Rack 03 coolant return temp,thermal-l1,RK-03,modbus-tcp,41205,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R04-cool,Rack 04 coolant return temp,thermal-l1,RK-04,modbus-tcp,41207,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R05-cool,Rack 05 coolant return temp,thermal-l1,RK-05,modbus-tcp,41209,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R06-cool,Rack 06 coolant return temp,thermal-l1,RK-06,modbus-tcp,41211,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R07-cool,Rack 07 coolant return temp,thermal-l1,RK-07,modbus-tcp,41213,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R08-cool,Rack 08 coolant return temp,thermal-l1,RK-08,modbus-tcp,41215,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R09-cool,Rack 09 coolant return temp,thermal-l1,RK-09,modbus-tcp,41217,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R10-cool,Rack 10 coolant return temp,thermal-l1,RK-10,modbus-tcp,41219,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R11-cool,Rack 11 coolant return temp,thermal-l1,RK-11,modbus-tcp,41221,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R12-cool,Rack 12 coolant return temp,thermal-l1,RK-12,modbus-tcp,41223,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R13-cool,Rack 13 coolant return temp,thermal-l1,RK-13,modbus-tcp,41225,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+TT-R14-cool,Rack 14 coolant return temp,thermal-l1,RK-14,modbus-tcp,41227,FLOAT32,°C,10,70,0.1,2000,,60,,55,,52,,,
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# THERMAL — LOOP 2 (MICROLINK PRIMARY WARM-WATER LOOP)
+# Pumps, expansion, chemistry, main headers
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+TT-L2s,Loop 2 supply header temperature,thermal-l2,LOOP2,modbus-tcp,42001,FLOAT32,°C,10,70,0.1,2000,,60,10,55,,52,,48,Primary process variable. 45°C nominal.
+TT-L2r,Loop 2 return header temperature,thermal-l2,LOOP2,modbus-tcp,42003,FLOAT32,°C,5,60,0.1,2000,,55,5,50,,45,,40,35°C nominal. ΔT=10K at full load.
+FT-L2,Loop 2 volumetric flow rate,thermal-l2,LOOP2,modbus-tcp,42005,FLOAT32,m³/h,0,30,0.1,2000,3,,,,5,,,,Low flow → pump issue or valve closed. ~12.8 m³/h nominal at 700kWt.
+PT-L2s,Loop 2 supply pressure,thermal-l2,LOOP2,modbus-tcp,42007,FLOAT32,kPa,0,600,0.1,2000,,450,50,400,,350,,300,System design pressure 400kPa. PRV at 500kPa.
+PT-L2r,Loop 2 return pressure,thermal-l2,LOOP2,modbus-tcp,42009,FLOAT32,kPa,0,600,0.1,2000,,400,50,350,,300,,250,
+PT-L2-dP,Loop 2 differential pressure,thermal-l2,LOOP2,modbus-tcp,42011,FLOAT32,kPa,0,200,0.1,2000,,150,,120,,100,,,Supply minus return. Indicates pump head.
+# ─── PUMP PP-01 (DUTY) ───,,,,,,,,,,,,,,,,,,,,
+PP01-status,Pump PP-01 running status,thermal-l2,PP-01,modbus-tcp,42101,UINT16,bool,0,1,1,2000,,,,,,,,,1=running 0=stopped
+PP01-speed,Pump PP-01 VFD speed,thermal-l2,PP-01,modbus-tcp,42103,FLOAT32,%,0,100,0.1,2000,,,,,,,,,"VFD percentage. Auto-modulated by PLC."
+PP01-kW,Pump PP-01 power consumption,thermal-l2,PP-01,modbus-tcp,42105,FLOAT32,kW,0,10,0.1,5000,,8,,,,,,,"Typical 2-4kW. High power = blockage or bearing wear."
+PP01-hours,Pump PP-01 run hours,thermal-l2,PP-01,modbus-tcp,42107,FLOAT32,h,0,99999,1,30000,,,,,,,,,Maintenance schedule: bearing inspection at 8760h (1yr)
+VIB-01,Pump PP-01 vibration velocity RMS,thermal-l2,PP-01,modbus-tcp,42109,FLOAT32,mm/s,0,30,0.1,2000,,15,,11,,7.0,,,ISO 10816-3. >7 mm/s → investigate. >11 → schedule. >15 → stop.
+TT-PP01-brg,Pump PP-01 bearing temperature,thermal-l2,PP-01,modbus-tcp,42111,FLOAT32,°C,10,120,0.1,2000,,100,,85,,70,,,Bearing temp trend is best early warning of failure
+PP01-fault,Pump PP-01 fault code,thermal-l2,PP-01,modbus-tcp,42113,UINT16,bool,0,255,1,2000,,,,,,,,,"0=no fault. Refer to VFD manual for codes."
+# ─── PUMP PP-02 (STANDBY) ───,,,,,,,,,,,,,,,,,,,,
+PP02-status,Pump PP-02 running status,thermal-l2,PP-02,modbus-tcp,42201,UINT16,bool,0,1,1,2000,,,,,,,,,N+1 standby. Auto-starts on PP-01 fault.
+PP02-speed,Pump PP-02 VFD speed,thermal-l2,PP-02,modbus-tcp,42203,FLOAT32,%,0,100,0.1,2000,,,,,,,,,
+PP02-kW,Pump PP-02 power consumption,thermal-l2,PP-02,modbus-tcp,42205,FLOAT32,kW,0,10,0.1,5000,,,,,,,,,
+PP02-hours,Pump PP-02 run hours,thermal-l2,PP-02,modbus-tcp,42207,FLOAT32,h,0,99999,1,30000,,,,,,,,,
+VIB-02,Pump PP-02 vibration velocity RMS,thermal-l2,PP-02,modbus-tcp,42209,FLOAT32,mm/s,0,30,0.1,2000,,15,,11,,7.0,,,
+TT-PP02-brg,Pump PP-02 bearing temperature,thermal-l2,PP-02,modbus-tcp,42211,FLOAT32,°C,10,120,0.1,2000,,100,,85,,70,,,
+PP02-fault,Pump PP-02 fault code,thermal-l2,PP-02,modbus-tcp,42213,UINT16,bool,0,255,1,2000,,,,,,,,,
+# ─── EXPANSION VESSEL ───,,,,,,,,,,,,,,,,,,,,
+PT-EXP,Expansion vessel pressure,thermal-l2,EXP-01,modbus-tcp,42301,FLOAT32,kPa,0,600,0.1,5000,,500,80,450,,400,100,350,System charge pressure ~250kPa cold. PRV at 500kPa.
+LT-EXP,Expansion vessel level,thermal-l2,EXP-01,modbus-tcp,42303,FLOAT32,%,0,100,0.1,5000,15,,,,20,,80,,Low level → glycol leak. High → over-pressurisation.
+TT-EXP,Expansion vessel temperature,thermal-l2,EXP-01,modbus-tcp,42305,FLOAT32,°C,0,80,0.1,5000,,60,,55,,50,,,
+# ─── WATER CHEMISTRY ───,,,,,,,,,,,,,,,,,,,,
+CT-pH,Loop 2 water pH,thermal-l2,CHEM-01,modbus-tcp,42401,FLOAT32,pH,0,14,0.01,30000,,10,6,9,,8,7,8.5,Target pH 7.5-8.5 for glycol corrosion protection
+CT-uS,Loop 2 water conductivity,thermal-l2,CHEM-01,modbus-tcp,42403,FLOAT32,μS/cm,0,5000,1,30000,,2500,,2000,,1500,,,High conductivity → glycol breakdown or contamination
+CT-glycol,Loop 2 glycol concentration,thermal-l2,CHEM-01,modbus-tcp,42405,FLOAT32,%,0,100,0.1,30000,,,,,,30,40,25,45,35% nominal (US/NY). Freeze protection to -20°C.
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# THERMAL — HEAT EXCHANGER (EXPORT INTERFACE)
+# Plate HX, billing meter, approach ΔT
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+TT-HXpIn,HX primary inlet temp (Loop 2 hot),thermal-hx,HX-01,modbus-tcp,43001,FLOAT32,°C,10,70,0.1,2000,,60,,55,,50,,,Loop 2 supply entering HX
+TT-HXpOut,HX primary outlet temp (Loop 2 cooled),thermal-hx,HX-01,modbus-tcp,43003,FLOAT32,°C,5,60,0.1,2000,,50,,48,,45,,,Loop 2 return leaving HX — should be cooler than inlet
+TT-HXsIn,HX secondary inlet temp (host return),thermal-hx,HX-01,modbus-tcp,43005,FLOAT32,°C,5,50,0.1,2000,,45,,42,,40,,,Host water returning from brewery — coldest point in Loop 3
+TT-HXsOut,HX secondary outlet temp (host supply),thermal-hx,HX-01,modbus-tcp,43007,FLOAT32,°C,10,60,0.1,2000,,55,,50,,48,,,Hot water going to brewery. ~40°C nominal (5°C approach below Loop 2 supply)
+PT-HXpIn,HX primary inlet pressure,thermal-hx,HX-01,modbus-tcp,43009,FLOAT32,kPa,0,600,0.1,2000,,450,,400,,350,,,
+PT-HXpOut,HX primary outlet pressure,thermal-hx,HX-01,modbus-tcp,43011,FLOAT32,kPa,0,600,0.1,2000,,400,,350,,300,,,
+PT-HX-dP,HX differential pressure,thermal-hx,HX-01,modbus-tcp,43013,FLOAT32,kPa,0,100,0.1,2000,,80,,60,,50,,,Rising dP → fouling. Schedule CIP when P2 triggers.
+TT-HX-approach,HX approach ΔT (calculated),thermal-hx,HX-01,modbus-tcp,43015,FLOAT32,°C,0,30,0.1,2000,,15,,10,,8,,,= TT-HXpIn - TT-HXsOut. Design 5°C. Rising = fouling.
+# ─── BILLING THERMAL METER ───,,,,,,,,,,,,,,,,,,,,
+FT-BIL,Billing meter — volumetric flow,thermal-hx,MET-T1,modbus-tcp,43101,FLOAT32,m³/h,0,30,0.1,2000,1,,,,2,,,,Ultrasonic billing-grade. Siemens SITRANS FUS. Tamper-evident.
+TT-BIL-s,Billing meter — supply temp (matched pair),thermal-hx,MET-T1,modbus-tcp,43103,FLOAT32,°C,5,70,0.1,2000,,,,,,,,,"Pt100 matched pair for ΔT calculation. Class A accuracy."
+TT-BIL-r,Billing meter — return temp (matched pair),thermal-hx,MET-T1,modbus-tcp,43105,FLOAT32,°C,5,60,0.1,2000,,,,,,,,,
+MET-T1-kWt,Billing meter — instantaneous thermal power,thermal-hx,MET-T1,modbus-tcp,43107,FLOAT32,kW,0,1000,0.1,2000,,,,,,,,,Calculated by meter: flow × ρ × Cp × ΔT. Authoritative for billing.
+MET-T1-kWht,Billing meter — cumulative thermal energy,thermal-hx,MET-T1,modbus-tcp,43109,FLOAT32,kWht,0,99999999,0.1,2000,,,,,,,,,Cumulative counter. NEVER resets. Reconcile monthly.
+MET-T1-status,Billing meter — device status,thermal-hx,MET-T1,modbus-tcp,43111,UINT16,bool,0,1,1,5000,,,,,,,,,"1=healthy, 0=fault. Any fault → flag billing period for manual review."
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# THERMAL — LOOP 3 (HOST PROCESS / HOT WATER)
+# Host interface, isolation valves, backflow prevention
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+TT-L3s,Loop 3 supply temp to host,thermal-l3,LOOP3,modbus-tcp,43201,FLOAT32,°C,10,60,0.1,2000,,55,,50,,48,,,= TT-HXsOut downstream of isolation valves. ~40°C nominal.
+TT-L3r,Loop 3 return temp from host,thermal-l3,LOOP3,modbus-tcp,43203,FLOAT32,°C,5,50,0.1,2000,,45,,42,,40,,,Return water from brewery process. ~25-30°C.
+PT-L3s,Loop 3 supply pressure,thermal-l3,LOOP3,modbus-tcp,43205,FLOAT32,kPa,0,600,0.1,2000,,400,,350,,300,100,,
+PT-L3r,Loop 3 return pressure,thermal-l3,LOOP3,modbus-tcp,43207,FLOAT32,kPa,0,600,0.1,2000,,350,,300,,250,80,,
+FT-L3,Loop 3 flow rate,thermal-l3,LOOP3,modbus-tcp,43209,FLOAT32,m³/h,0,30,0.1,2000,1,,,,2,,,,Should correlate with FT-BIL. Discrepancy → leak or bypass.
+V-ISO-ML-pos,MicroLink isolation valve position,thermal-l3,V-ISO-ML,modbus-tcp,43211,FLOAT32,%open,0,100,1,2000,,,,,,,,,0=closed, 100=open. Motorised actuator.
+V-ISO-HOST-pos,Host isolation valve position,thermal-l3,V-ISO-HOST,modbus-tcp,43213,FLOAT32,%open,0,100,1,2000,,,,,,,,,Manual with position feedback
+BFP-01-dP,Backflow preventer differential pressure,thermal-l3,BFP-01,modbus-tcp,43215,FLOAT32,kPa,0,100,0.1,5000,,80,,60,,50,,,Rising dP → maintenance needed. Verify annually.
+BFP-01-status,Backflow preventer test status,thermal-l3,BFP-01,modbus-tcp,43217,UINT16,bool,0,1,1,30000,,,,,,,,,"1=passed last test, 0=failed/overdue. Annual certification required."
+# ─── MODE STATE VALVES ───,,,,,,,,,,,,,,,,,,,,
+V-EXP-pos,Export valve position,thermal-l3,V-EXP,modbus-tcp,43301,FLOAT32,%open,0,100,1,1000,,,,,,,,,Controlled by Safety PLC. EXPORT=100% REJECT=0% MIXED=modulating
+V-EXP-cmd,Export valve command,thermal-l3,V-EXP,modbus-tcp,43303,FLOAT32,%open,0,100,1,1000,,,,,,,,,PLC command vs actual position — discrepancy = fault
+V-REJ-pos,Reject valve position,thermal-l3,V-REJ,modbus-tcp,43305,FLOAT32,%open,0,100,1,1000,,,,,,,,,EXPORT=0% REJECT=100% MIXED=modulating
+V-REJ-cmd,Reject valve command,thermal-l3,V-REJ,modbus-tcp,43307,FLOAT32,%open,0,100,1,1000,,,,,,,,,
+V-EXP-fault,Export valve fault,thermal-l3,V-EXP,modbus-tcp,43309,UINT16,bool,0,1,1,1000,,,,,,,,,1=fault (position ≠ command for >10s). Triggers P0 → REJECT.
+V-REJ-fault,Reject valve fault,thermal-l3,V-REJ,modbus-tcp,43311,UINT16,bool,0,1,1,1000,,,,,,,,,1=fault. CRITICAL — if reject valve can't open, safety risk.
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# THERMAL — HEAT REJECTION (100% FALLBACK)
+# Dry cooler, ambient, adiabatic spray
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+TT-DCin,Dry cooler inlet temp,thermal-reject,DC-01,modbus-tcp,44001,FLOAT32,°C,0,70,0.1,2000,,55,,50,,48,,,Hot water in from Loop 2 reject path
+TT-DCout,Dry cooler outlet temp,thermal-reject,DC-01,modbus-tcp,44003,FLOAT32,°C,-20,60,0.1,2000,,50,,45,,42,,,Cooled water back to Loop 2 return
+TT-AMB,Ambient air temperature,thermal-reject,DC-01,modbus-tcp,44005,FLOAT32,°C,-40,55,0.1,2000,,45,-25,40,-20,35,-15,,Baldwinsville: -20°C winter to 35°C summer. Adiabatic above 25°C.
+TT-AMB-wb,Ambient wet-bulb temperature,thermal-reject,DC-01,modbus-tcp,44007,FLOAT32,°C,-40,45,0.1,5000,,,,35,,30,,,Wet-bulb for adiabatic spray efficiency calculation
+RH-AMB,Ambient relative humidity,thermal-reject,DC-01,modbus-tcp,44009,FLOAT32,%RH,0,100,0.1,5000,,,,,,,90,,Adiabatic spray less effective at high RH
+DC01-fan1-spd,Dry cooler fan 1 speed,thermal-reject,DC-01,modbus-tcp,44011,FLOAT32,rpm,0,1200,1,5000,,,,,,,,,4 fans. VFD controlled based on target outlet temp.
+DC01-fan2-spd,Dry cooler fan 2 speed,thermal-reject,DC-01,modbus-tcp,44013,FLOAT32,rpm,0,1200,1,5000,,,,,,,,,
+DC01-fan3-spd,Dry cooler fan 3 speed,thermal-reject,DC-01,modbus-tcp,44015,FLOAT32,rpm,0,1200,1,5000,,,,,,,,,
+DC01-fan4-spd,Dry cooler fan 4 speed,thermal-reject,DC-01,modbus-tcp,44017,FLOAT32,rpm,0,1200,1,5000,,,,,,,,,
+DC01-fan-fault,Dry cooler fan fault bitmask,thermal-reject,DC-01,modbus-tcp,44019,UINT16,bool,0,15,1,2000,,,,,,,,,"Bit 0=fan1 ... Bit 3=fan4. 1=fault."
+DC01-kW,Dry cooler total fan power,thermal-reject,DC-01,modbus-tcp,44021,FLOAT32,kW,0,50,0.1,5000,,,,,,,,,"Parasitic power. Contributes to PUE."
+FT-SPRAY,Adiabatic spray water flow,thermal-reject,DC-01,modbus-tcp,44023,FLOAT32,m³/h,0,5,0.01,5000,,,,,,,,,0 when dry mode (ambient <25°C). Active in adiabatic mode.
+V-SPRAY-pos,Adiabatic spray valve position,thermal-reject,DC-01,modbus-tcp,44025,FLOAT32,%open,0,100,1,5000,,,,,,,,,Modulated based on approach to target outlet temp
+DC01-noise,Dry cooler noise level,thermal-reject,DC-01,modbus-tcp,44027,FLOAT32,dBA,30,90,0.5,30000,,,,,,,,65,Baldwinsville limit 65 dBA at property boundary
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# THERMAL — SAFETY (INDEPENDENT SAFETY PLC)
+# Leak detection, freeze protection, PRV, glycol containment
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+# ─── LEAK DETECTION — 4 ZONES × 2 SENSORS ───,,,,,,,,,,,,,,,,,,,,
+LD-01a,Leak detector — TPM zone — rope sensor,thermal-safety,LD-ZONE1,modbus-rtu,45001,UINT16,bool,0,1,1,1000,,1,,,,,,,"P0 IMMEDIATE. 1=leak detected. Rope sensor under thermal plant module."
+LD-01b,Leak detector — TPM zone — spot sensor,thermal-safety,LD-ZONE1,modbus-rtu,45002,UINT16,bool,0,1,1,1000,,1,,,,,,,"P0 IMMEDIATE. Backup spot probe at lowest point."
+LD-02a,Leak detector — pipe rack — rope sensor,thermal-safety,LD-ZONE2,modbus-rtu,45003,UINT16,bool,0,1,1,1000,,1,,,,,,,P0. Under exposed pipe runs between modules.
+LD-02b,Leak detector — pipe rack — spot sensor,thermal-safety,LD-ZONE2,modbus-rtu,45004,UINT16,bool,0,1,1,1000,,1,,,,,,,
+LD-03a,Leak detector — CDU area — rope sensor,thermal-safety,LD-ZONE3,modbus-rtu,45005,UINT16,bool,0,1,1,1000,,1,,,,,,,P0. Under CDU units where fittings connect.
+LD-03b,Leak detector — CDU area — spot sensor,thermal-safety,LD-ZONE3,modbus-rtu,45006,UINT16,bool,0,1,1,1000,,1,,,,,,,
+LD-04a,Leak detector — HX bay — rope sensor,thermal-safety,LD-ZONE4,modbus-rtu,45007,UINT16,bool,0,1,1,1000,,1,,,,,,,P0. Under plate HX and valve manifold.
+LD-04b,Leak detector — HX bay — spot sensor,thermal-safety,LD-ZONE4,modbus-rtu,45008,UINT16,bool,0,1,1,1000,,1,,,,,,,
+# ─── FREEZE PROTECTION ───,,,,,,,,,,,,,,,,,,,,
+TT-FREEZE-L2,Loop 2 freeze protection sensor,thermal-safety,FREEZE,modbus-rtu,45101,FLOAT32,°C,-40,60,0.1,1000,-10,,,,,-5,,0,At most exposed pipe point. Glycol protects to -20°C but monitor.
+TT-FREEZE-L3,Loop 3 freeze protection sensor,thermal-safety,FREEZE,modbus-rtu,45103,FLOAT32,°C,-40,60,0.1,1000,-5,,,,,0,,2,Loop 3 is clean water — no glycol. Trace heating activates at 3°C.
+TT-FREEZE-DC,Dry cooler freeze protection,thermal-safety,FREEZE,modbus-rtu,45105,FLOAT32,°C,-40,60,0.1,1000,-10,,,,,-5,,0,Glycol in dry cooler circuit
+TRACE-HEAT-L3,Loop 3 trace heating status,thermal-safety,FREEZE,modbus-rtu,45107,UINT16,bool,0,1,1,1000,,,,,,,,,"1=active (auto-starts at 3°C). Critical in Baldwinsville winters."
+# ─── PRESSURE RELIEF ───,,,,,,,,,,,,,,,,,,,,
+PRV-L2-status,Loop 2 PRV status,thermal-safety,PRV-L2,modbus-rtu,45201,UINT16,bool,0,1,1,1000,,1,,,,,,,P0 if PRV opens (1=open). Set at 500kPa.
+PRV-L3-status,Loop 3 PRV status,thermal-safety,PRV-L3,modbus-rtu,45203,UINT16,bool,0,1,1,1000,,1,,,,,,,
+PRV-L2-cycles,Loop 2 PRV cycle count,thermal-safety,PRV-L2,modbus-rtu,45205,UINT16,bool,0,999,1,30000,,,,,,,,5,"Replace after 5 actuations. Cumulative counter."
+# ─── GLYCOL CONTAINMENT ───,,,,,,,,,,,,,,,,,,,,
+LD-BUND,Bund/containment sump level,thermal-safety,CONTAIN,modbus-rtu,45301,FLOAT32,%,0,100,0.1,1000,,50,,30,,20,,,Glycol spill containment. Any level → investigate.
+LD-BUND-pump,Bund sump pump status,thermal-safety,CONTAIN,modbus-rtu,45303,UINT16,bool,0,1,1,1000,,,,,,,,,"1=running (auto on level >10%). Check pump weekly."
+# ─── SAFETY PLC HEALTH ───,,,,,,,,,,,,,,,,,,,,
+PLC-SAFE-status,Safety PLC running status,thermal-safety,PLC-SAFE,modbus-rtu,45401,UINT16,bool,0,1,1,1000,0,,,,,,,,P0 if PLC stops (0). Independent of edge gateway.
+PLC-SAFE-mode,Safety PLC current mode output,thermal-safety,PLC-SAFE,modbus-rtu,45403,UINT16,bool,0,3,1,1000,,,,,,,,,"0=EXPORT 1=MIXED 2=REJECT 3=MAINTENANCE. Authoritative."
+PLC-SAFE-watchdog,Safety PLC watchdog counter,thermal-safety,PLC-SAFE,modbus-rtu,45405,UINT16,bool,0,65535,1,1000,,,,,,,,,"Increments every scan. If stale for >5s → PLC frozen → P0."
+PLC-SAFE-faults,Safety PLC fault register,thermal-safety,PLC-SAFE,modbus-rtu,45407,UINT16,bool,0,65535,1,1000,,,,,,,,,"Bitmask. Bit0=comms_fault Bit1=sensor_fault Bit2=valve_fault Bit3=watchdog"
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# ENVIRONMENTAL
+# Rack inlet/outlet temps, humidity, differential pressure
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+TT-R01-in,Rack 01 air inlet temp,environmental,RK-01,modbus-tcp,46001,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,ASHRAE A1 class: 18-27°C recommended
+TT-R02-in,Rack 02 air inlet temp,environmental,RK-02,modbus-tcp,46003,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R03-in,Rack 03 air inlet temp,environmental,RK-03,modbus-tcp,46005,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R04-in,Rack 04 air inlet temp,environmental,RK-04,modbus-tcp,46007,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R05-in,Rack 05 air inlet temp,environmental,RK-05,modbus-tcp,46009,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R06-in,Rack 06 air inlet temp,environmental,RK-06,modbus-tcp,46011,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R07-in,Rack 07 air inlet temp,environmental,RK-07,modbus-tcp,46013,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R08-in,Rack 08 air inlet temp,environmental,RK-08,modbus-tcp,46015,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R09-in,Rack 09 air inlet temp,environmental,RK-09,modbus-tcp,46017,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R10-in,Rack 10 air inlet temp,environmental,RK-10,modbus-tcp,46019,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R11-in,Rack 11 air inlet temp,environmental,RK-11,modbus-tcp,46021,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R12-in,Rack 12 air inlet temp,environmental,RK-12,modbus-tcp,46023,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R13-in,Rack 13 air inlet temp,environmental,RK-13,modbus-tcp,46025,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R14-in,Rack 14 air inlet temp,environmental,RK-14,modbus-tcp,46027,FLOAT32,°C,10,45,0.1,5000,,40,,35,,32,,,
+TT-R01-out,Rack 01 air outlet temp,environmental,RK-01,modbus-tcp,46029,FLOAT32,°C,15,65,0.1,5000,,55,,50,,45,,,Exhaust air. High ΔT (inlet-outlet) = high utilisation.
+TT-R07-out,Rack 07 air outlet temp (mid-row sample),environmental,RK-07,modbus-tcp,46031,FLOAT32,°C,15,65,0.1,5000,,55,,50,,45,,,Sample outlet — not every rack measured
+TT-R14-out,Rack 14 air outlet temp (end-row sample),environmental,RK-14,modbus-tcp,46033,FLOAT32,°C,15,65,0.1,5000,,55,,50,,45,,,
+RH-01,Row humidity sensor — front,environmental,ENV,modbus-tcp,46101,FLOAT32,%RH,0,100,0.1,5000,,80,,70,,60,8,,ASHRAE: 20-80% allowable. 8% min for ESD prevention.
+RH-02,Row humidity sensor — rear,environmental,ENV,modbus-tcp,46103,FLOAT32,%RH,0,100,0.1,5000,,80,,70,,60,8,,
+DP-01,Row differential pressure (hot/cold aisle),environmental,ENV,modbus-tcp,46105,FLOAT32,Pa,-50,50,0.1,5000,,,,,,,,,"Positive = correct airflow direction. Negative → recirculation."
+TT-ROOM-avg,Average room temperature (computed),environmental,ENV,modbus-tcp,46107,FLOAT32,°C,10,50,0.1,5000,,40,,35,,32,,,Weighted average of inlet sensors
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# NETWORK
+# Managed switches, uplinks, latency
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+SW-01-status,Core switch 01 status,network,SW-01,snmp,1.3.6.1.2.1.1.3.0,UINT16,bool,0,1,1,30000,,,,,,,,,"1=reachable (sysUpTime responding), 0=unreachable"
+SW-01-uptime,Core switch 01 uptime,network,SW-01,snmp,1.3.6.1.2.1.1.3.0,UINT16,h,0,99999,1,30000,,,,,,,,,TimeTicks / 360000
+SW-01-cpu,Core switch 01 CPU utilisation,network,SW-01,snmp,1.3.6.1.4.1.9.9.109.1.1.1.1.7.1,FLOAT32,%,0,100,0.1,30000,,,,90,,80,,,Cisco/Aruba. High CPU → routing issues.
+SW-01-temp,Core switch 01 temperature,network,SW-01,snmp,1.3.6.1.4.1.9.9.13.1.3.1.3.1,FLOAT32,°C,0,80,0.1,30000,,70,,60,,55,,,
+SW-01-uplink1-bw,Uplink 1 bandwidth utilisation,network,SW-01,snmp,1.3.6.1.2.1.2.2.1.10.1,FLOAT32,%,0,100,0.1,30000,,,,95,,90,,,IF-MIB ifInOctets. Calculated as % of link speed.
+SW-01-uplink2-bw,Uplink 2 bandwidth utilisation,network,SW-01,snmp,1.3.6.1.2.1.2.2.1.10.2,FLOAT32,%,0,100,0.1,30000,,,,95,,90,,,
+SW-01-uplink1-status,Uplink 1 port status,network,SW-01,snmp,1.3.6.1.2.1.2.2.1.8.1,UINT16,bool,0,1,1,30000,,,,,,,,,"1=up, 0=down. Down → P1 if single uplink."
+SW-01-uplink2-status,Uplink 2 port status,network,SW-01,snmp,1.3.6.1.2.1.2.2.1.8.2,UINT16,bool,0,1,1,30000,,,,,,,,,
+SW-01-errors,Switch error count (all ports),network,SW-01,snmp,1.3.6.1.2.1.2.2.1.20.0,UINT16,bool,0,99999,1,30000,,,,,,,,100,"Delta counter. >100 errors/30s → investigate."
+SW-02-status,Access switch 02 status,network,SW-02,snmp,1.3.6.1.2.1.1.3.0,UINT16,bool,0,1,1,30000,,,,,,,,,Customer-facing switch
+SW-02-cpu,Access switch 02 CPU utilisation,network,SW-02,snmp,1.3.6.1.4.1.9.9.109.1.1.1.1.7.1,FLOAT32,%,0,100,0.1,30000,,,,90,,80,,,
+NET-latency-cloud,Latency to cloud broker,network,EDGE,modbus-tcp,47001,FLOAT32,ms,0,1000,0.1,30000,,500,,200,,100,,,Edge-measured RTT to cloud MQTT. >200ms → investigate WAN.
+NET-packet-loss,Packet loss to cloud,network,EDGE,modbus-tcp,47003,FLOAT32,%,0,100,0.01,30000,,10,,5,,2,,,>2% → noticeable data gaps
+NET-vpn-status,Management VPN tunnel status,network,EDGE,modbus-tcp,47005,UINT16,bool,0,1,1,30000,,,,,,,,,"1=up, 0=down. Down → remote management unavailable."
+NET-lte-signal,LTE backup signal strength,network,EDGE,modbus-tcp,47007,FLOAT32,dBm,-120,0,1,30000,,,,,,,,"-100 → weak. -80 → adequate. Backup path."
+NET-lte-status,LTE backup connection status,network,EDGE,modbus-tcp,47009,UINT16,bool,0,1,1,30000,,,,,,,,,"1=connected, 0=disconnected. Backup only."
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# SECURITY
+# Physical access, PIR, cameras
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+SEC-DOOR-main,Main enclosure door status,security,SEC,modbus-rtu,48001,UINT16,bool,0,1,1,30000,,,,,,,,,"1=open, 0=closed. P3 if open >10min without maintenance ticket."
+SEC-DOOR-rear,Rear access door status,security,SEC,modbus-rtu,48002,UINT16,bool,0,1,1,30000,,,,,,,,,
+SEC-DOOR-tpm,TPM access hatch status,security,SEC,modbus-rtu,48003,UINT16,bool,0,1,1,30000,,,,,,,,,Thermal plant module access
+SEC-PIR-01,PIR motion detector — perimeter,security,SEC,modbus-rtu,48011,UINT16,bool,0,1,1,30000,,,,,,,,,1=motion detected. After hours → alert.
+SEC-PIR-02,PIR motion detector — server area,security,SEC,modbus-rtu,48012,UINT16,bool,0,1,1,30000,,,,,,,,,
+SEC-CAM-01,Camera 01 status (perimeter),security,SEC,modbus-rtu,48021,UINT16,bool,0,1,1,30000,,,,,,,,,"1=recording, 0=offline. P2 if offline."
+SEC-CAM-02,Camera 02 status (server area),security,SEC,modbus-rtu,48022,UINT16,bool,0,1,1,30000,,,,,,,,,
+SEC-CAM-03,Camera 03 status (TPM area),security,SEC,modbus-rtu,48023,UINT16,bool,0,1,1,30000,,,,,,,,,
+SEC-ACCESS-last,Last access card event,security,SEC,modbus-rtu,48031,UINT16,bool,0,999,1,30000,,,,,,,,,Card reader ID of last access. Audit log.
+SEC-TAMPER,Enclosure tamper detect,security,SEC,modbus-rtu,48041,UINT16,bool,0,1,1,30000,,1,,,,,,,"P1 if tamper detected. Check physical integrity."
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# HOST BMS (BACnet/IP — READ ONLY)
+# Brewery hot water system readings
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+TT-HOST-hw-supply,Host hot water supply temp,host-bms,HOST-BMS,bacnet-ip,AI:1:1,FLOAT32,°C,10,90,0.1,30000,,,,80,,70,,,Brewery hot water supply line. 60°C demand.
+TT-HOST-hw-return,Host hot water return temp,host-bms,HOST-BMS,bacnet-ip,AI:1:2,FLOAT32,°C,5,70,0.1,30000,,,,60,,50,,,Return from brewery process
+TT-HOST-hw-tank,Host hot water storage tank temp,host-bms,HOST-BMS,bacnet-ip,AI:1:3,FLOAT32,°C,10,95,0.1,30000,,,,85,,80,,,Main HW storage. If full/hot → host may reduce demand.
+HOST-demand,Host heat demand signal,host-bms,HOST-BMS,bacnet-ip,BV:1:1,UINT16,bool,0,1,1,30000,,,,,,,,,"1=demanding heat, 0=satisfied. KEY guard for EXPORT mode."
+HOST-hw-pump,Host HW circulation pump status,host-bms,HOST-BMS,bacnet-ip,BI:1:1,UINT16,bool,0,1,1,30000,,,,,,,,,1=running. Must be running for us to export.
+HOST-boiler,Host backup boiler status,host-bms,HOST-BMS,bacnet-ip,BI:1:2,UINT16,bool,0,1,1,30000,,,,,,,,,1=firing. If we see this while in EXPORT → our heat is insufficient.
+HOST-bms-online,Host BMS communication status,host-bms,HOST-BMS,bacnet-ip,BV:1:2,UINT16,bool,0,1,1,30000,,,,,,,,,1=online. 0=comms lost. We still operate — just can't read host data.
+HOST-cnb-mode,Host CNB programme mode,host-bms,HOST-BMS,bacnet-ip,AV:1:1,UINT16,bool,0,3,1,30000,,,,,,,,,"0=normal 1=heat_pump_priority 2=electric_boiler 3=microlink_priority. NYSERDA CNB."
+#,,,,,,,,,,,,,,,,,,,,
+# ═══════════════════════════════════════════════════════════════
+# MODE STATE (read from Safety PLC)
+# ═══════════════════════════════════════════════════════════════
+#,,,,,,,,,,,,,,,,,,,,
+MODE-current,Current thermal mode state,mode,PLC-SAFE,modbus-rtu,45403,UINT16,bool,0,3,1,1000,,,,,,,,,"0=EXPORT 1=MIXED 2=REJECT 3=MAINTENANCE. Authoritative source."
+MODE-override,Mode override active,mode,PLC-SAFE,modbus-rtu,45409,UINT16,bool,0,1,1,1000,,,,,,,,,1=operator override active. Audit logged.
+MODE-override-by,Mode override operator ID,mode,PLC-SAFE,modbus-rtu,45411,UINT16,bool,0,999,1,1000,,,,,,,,,"Operator badge/ID number. 0=no override."
+MODE-uptime-export,Cumulative time in EXPORT (hours),mode,PLC-SAFE,modbus-rtu,45413,FLOAT32,h,0,99999,0.1,30000,,,,,,,,,For mode distribution reporting
+MODE-uptime-reject,Cumulative time in REJECT (hours),mode,PLC-SAFE,modbus-rtu,45415,FLOAT32,h,0,99999,0.1,30000,,,,,,,,,
+MODE-transitions,Total mode transitions count,mode,PLC-SAFE,modbus-rtu,45417,UINT16,bool,0,65535,1,30000,,,,,,,,,High count → hunting or instability. Investigate.
