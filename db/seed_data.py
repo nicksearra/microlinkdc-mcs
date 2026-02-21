@@ -206,8 +206,10 @@ def main():
             ("alarm_raised", "alarm_engine", "warning", {"tag":"CDU-01-T-RET","priority":"P1"}, NOW-timedelta(minutes=3)),
             ("operator_action", "dashboard", "info", {"action":"ack","tag":"ML-GLYCOL-CONC"}, NOW-timedelta(minutes=50)),
         ]:
-            cur.execute("INSERT INTO events (block_id, event_type, source, severity, payload, created_at) VALUES (%s,%s,%s,%s,%s,%s)",
-                        (block_id, etype, src, sev, json.dumps(payload), ts))
+            payload["source"] = src
+            payload["severity"] = sev
+            cur.execute("INSERT INTO events (block_id, event_type, payload, created_at) VALUES (%s,%s,%s,%s)",
+                        (block_id, etype, json.dumps(payload), ts))
 
         conn.commit()
         print(f"\n{'='*50}")
